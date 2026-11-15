@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5435/integration4}
+    username: ${DB_USER:spring}
+    password: ${DB_PASSWORD:spring}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        ddl-auto: update
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:set-me}
+            client-secret: ${GOOGLE_CLIENT_SECRET:set-me}
+            scope:
+              - openid
+              - profile
+              - email

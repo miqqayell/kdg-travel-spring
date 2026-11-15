@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${pageTitle} + ' - KdG Travel'">Travel Group Form - KdG Travel</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+  <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+  <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+  <style>
+    .nav-link { font-weight: 500; transition: all 0.2s ease-in-out; padding: 0.5rem 1rem !important; }
+    .nav-link.active { color: #20c997 !important; background-color: rgba(32, 201, 151, 0.15); border-radius: 8px; }
+
+    /* Premium Background Wrapper */
+    .form-wrapper {
+      min-height: calc(100vh - 80px);
+      background: radial-gradient(circle at top left, rgba(32, 181, 96, 0.15), transparent 40%),
+      radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.15), transparent 40%);
+    }
+
+    /* Frosted Glass Card */
+    .glass-card {
+      background-color: rgba(30, 41, 59, 0.8) !important;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+  </style>
+</head>
+<body class="bg-dark text-white">
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+      <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+      <span class="text-white tracking-wide">KDG Travel</span>
+    </a>
+    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3 fw-medium" id="nav-links">
+        <li class="nav-item"><a class="nav-link text-white-50" href="/activities" id="nav-activities"><i class="bi bi-compass me-1"></i> Explore</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/map" id="nav-map"><i class="bi bi-map me-1"></i> Map</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/travel-groups" id="nav-travel-groups"><i class="bi bi-people me-1"></i> Groups</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/users" id="nav-users"><i class="bi bi-search me-1"></i> Users</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/analytics" id="nav-analytics"><i class="bi bi-bar-chart me-1"></i> Analytics</a></li>
+        <li class="nav-item" th:if="${canAccessAdminDashboard}"><a class="nav-link text-white-50" href="/admin" id="nav-admin"><i class="bi bi-shield-lock me-1"></i> Admin</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-4">
+        <div class="dropdown">
+          <a href="#" class="text-white position-relative text-decoration-none fs-5 hover-scale" id="notification-bell" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">0</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4" id="notification-list" style="max-height: 400px; overflow-y: auto; min-width: 320px; background-color: var(--surface-dark);">
+            <li><span class="dropdown-item text-muted small py-3 text-center bg-transparent">No new notifications</span></li>
+          </ul>
+        </div>
+        <a href="/profile" class="btn btn-primary rounded-pill px-4 fw-bold text-truncate" style="max-width: 150px;" th:text="${userName != null ? userName : 'My Profile'}">My Profile</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="form-wrapper py-5 animate-fade-in-up">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card shadow-lg glass-card rounded-4">
+          <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 pt-4 pb-0">
+            <h3 class="fw-bold text-success mb-3"><i class="bi bi-people me-2"></i> <span th:text="${pageTitle}">Create Travel Group</span></h3>
+          </div>
+          <div class="card-body p-4 p-md-5">
+            <div th:if="${formError}" class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger" th:text="${formError}"></div>
+
+            <form id="travelGroupForm" th:action="${formAction}" th:object="${travelGroupForm}" method="post">
+              <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+              <div class="mb-4">
+                <label class="form-label fw-bold text-white">Title</label>
+                <input type="text" class="form-control bg-transparent text-white border-secondary shadow-none" th:field="*{title}" placeholder="e.g. Bike Buddies to Campus">
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-bold text-white">Description</label>
+                <textarea class="form-control bg-transparent text-white border-secondary shadow-none" rows="3" th:field="*{description}" placeholder="Describe your travel group"></textarea>
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-bold text-white">Activity (Optional)</label>
+                <select class="form-select bg-dark text-white border-secondary shadow-none" th:field="*{activityId}" id="activityId">
+                  <option value="" class="text-dark">No activity linked</option>
+
+                  <option th:each="activity : ${activities}"
+                          th:value="${activity.id}"
+                          th:data-lat="${activity.locationLatitude}"
+                          th:data-lng="${activity.locationLongitude}"
+                          th:data-address="${activity.locationAddress}"
+                          th:text="${activity.title + ' - ' + activity.locationAddress}" class="text-dark">
+                    Activity
+                  </option>
+
+                </select>
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('activityId')}" th:errors="*{activityId}"></div>
+              </div>
+
+              <div class="mb-3">
+                <label for="transportationMode" class="form-label fw-medium">Transportation Mode</label>
+
+                <select id="transportationMode"
+                        th:field="*{transportationMode}"
+                        class="form-select bg-dark text-white border-secondary"
+                        required>
+                  <option value="" class="text-dark">Choose transport mode</option>
+                  <option th:each="mode : ${transportModes}" th:value="${mode}" th:text="${mode}" class="text-dark">BIKE</option>
+                </select>
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('transportationMode')}" th:errors="*{transportationMode}"></div>
+              </div>
+
+              <div class="mb-3" id="contribution-field" style="display: none;">
+                <label for="contributionRequired" class="form-label fw-medium">
+                  Carpool Contribution
+                </label>
+
+                <select class="form-select bg-dark text-white border-secondary"
+                        id="contributionRequired"
+                        th:field="*{contributionRequired}">
+                  <option value="false">Free ride</option>
+                  <option value="true">Contribution required</option>
+                </select>
+
+                <div class="form-text text-muted">
+                  Let other users know if they need to contribute to fuel or travel costs.
+                </div>
+              </div>
+
+              <hr class="my-4 border-secondary border-opacity-25">
+
+              <div class="mb-4">
+                <label class="form-label fw-bold text-white">Start Location</label>
+                <div class="position-relative">
+                  <input type="text" class="form-control bg-transparent text-white border-secondary shadow-none" id="startLocationInput" placeholder="e.g. Antwerpen-Centraal" autocomplete="off" required>
+                  <ul id="startSuggestionsList" class="list-group position-absolute w-100 dropdown-shadow rounded-3 overflow-hidden mt-1" style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;"></ul>
+                </div>
+                <small class="text-muted">Start typing to see address suggestions.</small>
+                <input type="hidden" id="startLatInput" th:field="*{startPointLatitude}">
+                <input type="hidden" id="startLngInput" th:field="*{startPointLongitude}">
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('startPointLatitude')}" th:errors="*{startPointLatitude}"></div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-bold text-white">Destination</label>
+                <div class="position-relative">
+                  <input type="text" class="form-control bg-transparent text-white border-secondary shadow-none" id="endLocationInput" placeholder="e.g. KdG Campus Zuid" autocomplete="off" required>
+                  <ul id="endSuggestionsList" class="list-group position-absolute w-100 dropdown-shadow rounded-3 overflow-hidden mt-1" style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;"></ul>
+                </div>
+                <small class="text-muted">Where is your group traveling to?</small>
+                <input type="hidden" id="endLatInput" th:field="*{endPointLatitude}">
+                <input type="hidden" id="endLngInput" th:field="*{endPointLongitude}">
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('endPointLatitude')}" th:errors="*{endPointLatitude}"></div>
+              </div>
+
+              <hr class="my-4 border-secondary border-opacity-25">
+
+              <div class="row g-3">
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold text-white">Estimated Distance (km)</label>
+                  <input type="number" step="0.1" min="0" class="form-control bg-transparent text-white border-secondary shadow-none" id="distanceKmInput" th:field="*{distanceKm}">
+                  <div class="text-danger small mt-1" th:if="${#fields.hasErrors('distanceKm')}" th:errors="*{distanceKm}"></div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold text-white">Meetup Time</label>
+                  <input type="datetime-local" class="form-control bg-transparent text-white border-secondary shadow-none" th:field="*{meetupTime}">
+                  <div class="text-danger small mt-1" th:if="${#fields.hasErrors('meetupTime')}" th:errors="*{meetupTime}"></div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold text-white">Maximum Group Size</label>
+                  <input type="number" min="1" max="99" class="form-control bg-transparent text-white border-secondary shadow-none" th:field="*{maxSize}">
+                  <div class="text-danger small mt-1" th:if="${#fields.hasErrors('maxSize')}" th:errors="*{maxSize}"></div>
+                </div>
+              </div>
+
+              <div id="transitSuggestionsPanel" class="mt-4 d-none">
+                <div class="border border-secondary border-opacity-25 rounded-4 bg-dark p-3">
+                  <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                      <h5 class="fw-bold text-white mb-1">Live public transport suggestions</h5>
+                      <p class="text-muted small mb-0">Based on nearby De Lijn stops and current departure data.</p>
+                    </div>
+                    <button type="button" id="refreshTransitSuggestionsBtn" class="btn btn-outline-success btn-sm rounded-pill flex-shrink-0">
+                      <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                  </div>
+
+                  <div id="transitSuggestionsLoading" class="text-muted small d-none">
+                    <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    Fetching live departures...
+                  </div>
+                  <div id="transitSuggestionsError" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning py-2 small d-none mb-0">
+                    Transit suggestions unavailable. Continue without them.
+                  </div>
+                  <div id="transitSuggestionsEmpty" class="text-muted small d-none">
+                    No live public transport suggestions found for this route and meetup time.
+                  </div>
+                  <div id="transitSuggestionsList" class="vstack gap-2"></div>
+                </div>
+              </div>
+
+              <input type="hidden" th:field="*{selectedRouteToken}">
+              <input type="hidden" th:field="*{selectedRouteStartStopId}">
+              <input type="hidden" th:field="*{selectedRouteStartStopName}">
+              <input type="hidden" th:field="*{selectedRouteEndStopId}">
+              <input type="hidden" th:field="*{selectedRouteEndStopName}">
+              <input type="hidden" th:field="*{selectedRouteLineNumber}">
+              <input type="hidden" th:field="*{selectedRouteDirection}">
+              <input type="hidden" th:field="*{selectedRouteDestination}">
+              <input type="hidden" th:field="*{selectedRouteDepartureTime}">
+              <input type="hidden" th:field="*{selectedRouteEstimatedArrivalTime}">
+              <input type="hidden" th:field="*{selectedRouteRealTimeStatus}">
+              <input type="hidden" th:field="*{selectedRouteEstimatedDelayMinutes}">
+              <input type="hidden" id="selectedTransitRouteIndexInput" th:field="*{selectedPublicTransportRouteIndex}">
+
+              <div class="d-flex justify-content-between flex-wrap gap-2 mt-5">
+                <a href="/travel-groups" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                <button type="submit" id="submitBtn" class="btn btn-success rounded-pill px-5 fw-bold" th:text="${submitLabel}">Create</button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('#nav-links .nav-link');
+    navLinks.forEach(link => {
+      if (currentPath.startsWith(link.getAttribute('href')) && link.getAttribute('href') !== '/') {
+        link.classList.remove('text-white-50');
+        link.classList.add('active');
+      }
+    });
+
+    fetch('/api/notifications')
+            .then(response => response.json())
+            .then(data => {
+              const badge = document.getElementById('notification-badge');
+              const unreadCount = data.filter(note => !note.read).length;
+              if (unreadCount > 0) {
+                badge.style.display = 'inline-block';
+                badge.innerText = unreadCount;
+              }
+            });
+  });
+
+  // --- DISTANCE CALCULATION ---
+  function calculateAndSetDistance() {
+    const lat1 = parseFloat(document.getElementById('startLatInput').value);
+    const lon1 = parseFloat(document.getElementById('startLngInput').value);
+    const lat2 = parseFloat(document.getElementById('endLatInput').value);
+    const lon2 = parseFloat(document.getElementById('endLngInput').value);
+    const distanceInput = document.getElementById('distanceKmInput');
+
+    if (!isNaN(lat1) && !isNaN(lon1) && !isNaN(lat2) && !isNaN(lon2)) {
+      const headers = {'Content-Type': 'application/json'};
+      const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+      const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+      if (csrfToken && csrfHeader) {
+        headers[csrfHeader] = csrfToken;
+      }
+
+      fetch('/api/groups/walking-distance', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          startPointLatitude: lat1,
+          startPointLongitude: lon1,
+          endPointLatitude: lat2,
+          endPointLongitude: lon2
+        })
+      })
+              .then(response => {
+                if (!response.ok) throw new Error('Walking distance unavailable');
+                return response.json();
+              })
+              .then(data => {
+                distanceInput.value = Number(data.distanceKm).toFixed(1);
+              })
+              .catch(() => {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                distanceInput.value = (R * c * 1.2).toFixed(1);
+              });
+    }
+  }
+
+  // --- AUTOCOMPLETE LOGIC ---
+  function setupLocationAutocomplete(inputId, listId, latInputId, lngInputId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    const latInput = document.getElementById(latInputId);
+    const lngInput = document.getElementById(lngInputId);
+    let debounceTimer;
+
+    input.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      const query = this.value.trim();
+      if (query.length < 2) {
+        list.style.display = 'none';
+        return;
+      }
+
+      debounceTimer = setTimeout(() => {
+        fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=51.2194&lon=4.4025&limit=5`)
+                .then(response => response.json())
+                .then(data => {
+                  list.innerHTML = '';
+                  if (data.features && data.features.length > 0) {
+                    list.style.display = 'block';
+                    data.features.forEach(feature => {
+                      const place = feature.properties;
+                      let displayName = place.name || place.street || "";
+                      if (place.housenumber) displayName += " " + place.housenumber;
+                      if (place.city || place.state) displayName += ", " + (place.city || place.state);
+                      if (!displayName.includes("Belgium") && place.country) displayName += ", " + place.country;
+
+                      const li = document.createElement('li');
+                      // Using the new Custom Suggestion Classes here!
+                      li.className = 'list-group-item custom-suggestion-item py-2 px-3 cursor-pointer';
+                      li.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-geo-alt-fill text-success fs-5 me-3"></i> <span class="fw-medium">${displayName}</span></div>`;
+
+                      li.addEventListener('click', () => {
+                        input.value = displayName;
+                        latInput.value = feature.geometry.coordinates[1];
+                        lngInput.value = feature.geometry.coordinates[0];
+                        list.style.display = 'none';
+                        calculateAndSetDistance();
+                        refreshTransitSuggestions();
+                      });
+                      list.appendChild(li);
+                    });
+                  } else {
+                    list.style.display = 'none';
+                  }
+                });
+      }, 300);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (e.target !== input && e.target !== list) {
+        list.style.display = 'none';
+      }
+    });
+  }
+
+  setupLocationAutocomplete('startLocationInput', 'startSuggestionsList', 'startLatInput', 'startLngInput');
+  setupLocationAutocomplete('endLocationInput', 'endSuggestionsList', 'endLatInput', 'endLngInput');
+
+  // --- REVERSE GEOCODING (For Edit Mode) ---
+  function fillAddressIfEditing(latInputId, lngInputId, textInputId) {
+    const lat = document.getElementById(latInputId).value;
+    const lng = document.getElementById(lngInputId).value;
+    const textInput = document.getElementById(textInputId);
+
+    if (lat && lng && !textInput.value) {
+      fetch(`https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.features && data.features.length > 0) {
+                  const place = data.features[0].properties;
+                  let displayName = place.name || place.street || "";
+                  if (place.city || place.state) displayName += ", " + (place.city || place.state);
+                  textInput.value = displayName;
+                } else {
+                  textInput.value = "Saved Location (" + lat + ", " + lng + ")";
+                }
+              });
+    }
+  }
+
+  fillAddressIfEditing('startLatInput', 'startLngInput', 'startLocationInput');
+  fillAddressIfEditing('endLatInput', 'endLngInput', 'endLocationInput');
+
+  // --- LIVE TRANSIT SUGGESTIONS ---
+  const transitPanel = document.getElementById('transitSuggestionsPanel');
+  const transitList = document.getElementById('transitSuggestionsList');
+  const transitLoading = document.getElementById('transitSuggestionsLoading');
+  const transitEmpty = document.getElementById('transitSuggestionsEmpty');
+  const transitError = document.getElementById('transitSuggestionsError');
+  const transportModeInput = document.getElementById('transportationMode');
+  const meetupTimeInput = document.getElementById('meetupTime');
+  const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+  const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+  let transitSuggestionTimer;
+  let transitWarmingRetryPending = false;
+
+  function canFetchTransitSuggestions() {
+    return transportModeInput?.value === 'PUBLIC_TRANSPORT'
+            && document.getElementById('startLatInput').value
+            && document.getElementById('startLngInput').value
+            && document.getElementById('endLatInput').value
+            && document.getElementById('endLngInput').value
+            && meetupTimeInput?.value;
+  }
+
+  function clearSelectedTransitRoute() {
+    [
+      'selectedRouteStartStopId',
+      'selectedRouteStartStopName',
+      'selectedRouteEndStopId',
+      'selectedRouteEndStopName',
+      'selectedRouteLineNumber',
+      'selectedRouteDirection',
+      'selectedRouteDestination',
+      'selectedRouteDepartureTime',
+      'selectedRouteEstimatedArrivalTime',
+      'selectedRouteRealTimeStatus',
+      'selectedRouteEstimatedDelayMinutes',
+      'selectedRouteToken'
+    ].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.value = '';
+    });
+    setSelectedTransitRouteIndex('');
+  }
+
+  function refreshTransitSuggestions() {
+    clearTimeout(transitSuggestionTimer);
+
+    if (transportModeInput?.value !== 'PUBLIC_TRANSPORT') {
+      transitPanel.classList.add('d-none');
+      clearSelectedTransitRoute();
+      return;
+    }
+
+    transitPanel.classList.remove('d-none');
+    transitError.classList.add('d-none');
+    transitEmpty.classList.toggle('d-none', canFetchTransitSuggestions());
+
+    if (!canFetchTransitSuggestions()) {
+      transitList.innerHTML = '';
+      clearSelectedTransitRoute();
+      return;
+    }
+
+    transitSuggestionTimer = setTimeout(fetchTransitSuggestions, 350);
+  }
+
+  function fetchTransitSuggestions() {
+    if (!canFetchTransitSuggestions()) {
+      refreshTransitSuggestions();
+      return;
+    }
+
+    transitLoading.classList.remove('d-none');
+    transitError.classList.add('d-none');
+    transitEmpty.classList.add('d-none');
+    transitList.innerHTML = '';
+    clearSelectedTransitRoute();
+
+    const headers = {'Content-Type': 'application/json'};
+    if (csrfToken && csrfHeader) {
+      headers[csrfHeader] = csrfToken;
+    }
+
+    fetch('/api/groups/suggestions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        startPointLatitude: parseFloat(document.getElementById('startLatInput').value),
+        startPointLongitude: parseFloat(document.getElementById('startLngInput').value),
+        endPointLatitude: parseFloat(document.getElementById('endLatInput').value),
+        endPointLongitude: parseFloat(document.getElementById('endLngInput').value),
+        transportationMode: 'PUBLIC_TRANSPORT',
+        meetupTime: meetupTimeInput.value
+      })
+    })
+            .then(response => {
+              if (!response.ok) throw new Error('Suggestion request failed');
+              const headerStatus = response.headers.get('X-Transit-Suggestions-Status');
+              return response.json().then(result => ({result, status: headerStatus || result.status || 'OK'}));
+            })
+            .then(({result, status}) => {
+              renderTransitSuggestions(result, status);
+            })
+            .catch(() => {
+              transitError.classList.remove('d-none');
+              transitList.innerHTML = '';
+            })
+            .finally(() => transitLoading.classList.add('d-none'));
+  }
+
+  function renderTransitSuggestions(result, status) {
+    if (status === 'DATA_UNAVAILABLE') {
+      transitError.classList.remove('d-none');
+      setSelectedTransitRouteIndex('');
+      return;
+    }
+
+    const routes = Array.isArray(result?.routes) && result.routes.length
+            ? result.routes
+            : result?.route ? [result.route] : [];
+    if (!routes.length) {
+      transitEmpty.classList.remove('d-none');
+      setSelectedTransitRouteIndex('');
+      return;
+    }
+
+    setSelectedTransitRouteIndex(0);
+    selectTransitRoute(routes[0], 0);
+    transitList.innerHTML = routes.map((route, index) => transitRouteCard(route, index)).join('');
+    routes.forEach((route, index) => {
+      document.getElementById(`transitRoute${index}`).addEventListener('change', () => selectTransitRoute(route, index));
+    });
+  }
+
+  function transitRouteCard(route, index) {
+    const lineColor = safeCssColor(route.lineColor) || '#198754';
+    const transferCount = route.transferCount ?? 0;
+    const transferText = transferCount === 1 ? '1 transfer' : `${transferCount} transfers`;
+    const walkingText = route.walkingMinutes != null ? `${route.walkingMinutes} min walking` : 'walking time unknown';
+    const legSummaryLines = transitLegSummaryLines(route.legs || []);
+    const iconClass = transitRouteIconClass(route);
+
+    return `
+      <label class="border border-secondary border-opacity-25 rounded-4 p-3 d-flex gap-3 align-items-start bg-dark text-white" for="transitRoute${index}" style="border-left: 6px solid ${lineColor} !important;">
+        <input class="form-check-input mt-1" type="radio" name="selectedTransitRoute" id="transitRoute${index}" ${index === 0 ? 'checked' : ''}>
+        <i class="bi ${iconClass} text-success fs-4 flex-shrink-0"></i>
+        <span class="flex-grow-1">
+          <span class="d-flex justify-content-between gap-3 flex-wrap">
+            <strong class="text-break">${escapeHtml(route.routeSummary || `Line ${route.primaryLineLabel || '-'}`)}</strong>
+          </span>
+          <span class="d-block text-muted small mt-1">
+            ${formatTransitTime(route.expectedDeparture || route.departureTime)}-${formatTransitTime(route.expectedArrival || route.estimatedArrivalTime)}
+            &middot; ${escapeHtml(transferText)}
+            &middot; ${escapeHtml(walkingText)}
+          </span>
+          <span class="d-block text-muted small mt-1 text-break">${legSummaryLines.map(escapeHtml).join('<br>')}</span>
+        </span>
+      </label>`;
+  }
+
+  // for contribution selector
+  document.addEventListener("DOMContentLoaded", function () {
+
+    const transportSelect = document.getElementById("transportationMode");
+    const contributionField = document.getElementById("contribution-field");
+
+    function toggleContributionField() {
+
+      if (transportSelect.value === "CARPOOL") {
+        contributionField.style.display = "block";
+      } else {
+        contributionField.style.display = "none";
+      }
+    }
+
+    toggleContributionField();
+
+    transportSelect.addEventListener("change", toggleContributionField);
+  });
+
+  function transitRouteIconClass(route) {
+    const firstTransitLeg = (route.legs || []).find(leg => leg.type !== 'WALK');
+    return Number(firstTransitLeg?.routeType) === 0 ? 'bi-train-lightrail-front' : 'bi-bus-front';
+  }
+
+  function setSelectedTransitRouteIndex(value) {
+    const input = document.getElementById('selectedTransitRouteIndexInput');
+    if (input) {
+      input.value = value;
+    }
+  }
+
+  function transitLegSummaryLines(legs) {
+    const transitLegs = legs.filter(leg => leg.type !== 'WALK');
+    if (!transitLegs.length) return ['Route details unavailable'];
+
+    const firstStop = transitLegs[0].fromStopName || 'origin stop';
+    const lastStop = transitLegs[transitLegs.length - 1].toStopName || 'destination stop';
+    const lineSequence = transitLegs
+            .map(leg => leg.routeShortName || leg.routeLongName || 'Line')
+            .filter(Boolean)
+            .join(' -> ');
+
+    if (transitLegs.length === 1) {
+      return [`${lineSequence}: ${firstStop} to ${lastStop}`];
+    }
+
+    const transferStops = transitLegs
+            .slice(0, -1)
+            .map(leg => leg.toStopName)
+            .filter(Boolean)
+            .join(', ');
+    return [
+      `${lineSequence}: ${firstStop} to ${lastStop}`,
+      transferStops ? `Transfer at ${transferStops}` : 'Transfer route'
+    ];
+  }
+
+  function safeCssColor(value) {
+    const color = String(value || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(color) ? color : null;
+  }
+
+  function selectTransitRoute(route, index) {
+    setSelectedTransitRouteIndex(index);
+    document.getElementById('selectedRouteToken').value = route.selectedRouteToken || '';
+    document.getElementById('selectedRouteStartStopId').value = route.startStopId || '';
+    document.getElementById('selectedRouteStartStopName').value = route.startStopName || '';
+    document.getElementById('selectedRouteEndStopId').value = route.endStopId || '';
+    document.getElementById('selectedRouteEndStopName').value = route.endStopName || '';
+    document.getElementById('selectedRouteLineNumber').value = route.lineNumber || route.primaryLineLabel || '';
+    document.getElementById('selectedRouteDirection').value = route.direction || route.headsign || '';
+    document.getElementById('selectedRouteDestination').value = route.destination || route.headsign || '';
+    document.getElementById('selectedRouteDepartureTime').value = route.departureTime || route.expectedDeparture || '';
+    document.getElementById('selectedRouteEstimatedArrivalTime').value = route.estimatedArrivalTime || route.expectedArrival || '';
+    document.getElementById('selectedRouteRealTimeStatus').value = route.realTimeStatus || '';
+    document.getElementById('selectedRouteEstimatedDelayMinutes').value = route.estimatedDelayMinutes || '';
+  }
+
+  function formatTransitTime(value) {
+    if (!value) return 'Time unknown';
+    return new Date(value).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+  }
+
+
+  transportModeInput?.addEventListener('change', refreshTransitSuggestions);
+  meetupTimeInput?.addEventListener('change', refreshTransitSuggestions);
+  document.getElementById('refreshTransitSuggestionsBtn')?.addEventListener('click', refreshTransitSuggestions);
+  refreshTransitSuggestions();
+
+  // --- VALIDATION ---
+  document.getElementById('travelGroupForm').addEventListener('submit', function(event) {
+    const startLat = document.getElementById('startLatInput').value;
+    const endLat = document.getElementById('endLatInput').value;
+
+    if (!startLat || !endLat) {
+      event.preventDefault();
+      alert("Please select your Start and Destination locations from the dropdown suggestions!");
+    }
+  });
+
+
+  const activitySelect = document.getElementById('activityId');
+  const endLocationInput = document.getElementById('endLocationInput');
+  const endLatInput = document.getElementById('endLatInput');
+  const endLngInput = document.getElementById('endLngInput');
+
+  if (activitySelect && endLocationInput) {
+    activitySelect.addEventListener('change', function() {
+      const selectedOption = this.options[this.selectedIndex];
+
+      if (this.value) {
+        // 1. Auto-fill the destination fields
+        endLatInput.value = selectedOption.getAttribute('data-lat');
+        endLngInput.value = selectedOption.getAttribute('data-lng');
+        endLocationInput.value = selectedOption.getAttribute('data-address');
+
+        // 2. Lock the input visually and functionally
+        endLocationInput.setAttribute('readonly', true);
+        endLocationInput.classList.add('opacity-50');
+        endLocationInput.style.pointerEvents = 'none'; // Prevents opening the suggestions dropdown
+
+        // 3. Recalculate distance and live transit suggestions instantly!
+        calculateAndSetDistance();
+        refreshTransitSuggestions();
+      } else {
+        // Unlock everything if they select "No activity linked"
+        endLocationInput.value = '';
+        endLatInput.value = '';
+        endLngInput.value = '';
+        endLocationInput.removeAttribute('readonly');
+        endLocationInput.classList.remove('opacity-50');
+        endLocationInput.style.pointerEvents = 'auto';
+      }
+    });
+
+    // just in case they clicked "Create Group" from an Activity details page!
+    if (activitySelect.value) {
+      setTimeout(() => activitySelect.dispatchEvent(new Event('change')), 100);
+    }
+  }
+</script>
+</body>
+</html>

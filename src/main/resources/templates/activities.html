@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KdG Travel - Explore Events</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+  <style>
+    .nav-link { font-weight: 500; transition: all 0.2s ease-in-out; padding: 0.5rem 1rem !important; }
+    .nav-link.active { color: #20c997 !important; background-color: rgba(32, 201, 151, 0.15); border-radius: 8px; }
+    .location-filter-input { background-color: var(--bs-dark); color: var(--bs-light); }
+    .event-filter-chip {
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 0.55rem 0.95rem;
+      text-decoration: none;
+    }
+    .event-filter-chip:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .event-filter-chip.active {
+      color: #fff;
+      border-color: var(--primary-color);
+      background: var(--primary-color);
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+      <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+      <span class="text-white tracking-wide">KDG Travel</span>
+    </a>
+    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3 fw-medium" id="nav-links">
+        <li class="nav-item"><a class="nav-link text-white-50" href="/activities" id="nav-activities"><i class="bi bi-compass me-1"></i> Explore</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/map" id="nav-map"><i class="bi bi-map me-1"></i> Map</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/travel-groups" id="nav-travel-groups"><i class="bi bi-people me-1"></i> Groups</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/users" id="nav-users"><i class="bi bi-search me-1"></i> Users</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/analytics" id="nav-analytics"><i class="bi bi-bar-chart me-1"></i> Analytics</a></li>
+        <li class="nav-item" th:if="${canAccessAdminDashboard}"><a class="nav-link text-white-50" href="/admin" id="nav-admin"><i class="bi bi-shield-lock me-1"></i> Admin</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-4">
+        <div class="dropdown">
+          <a href="#" class="text-white position-relative text-decoration-none fs-5 hover-scale" id="notification-bell" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;"></span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4" id="notification-list" style="max-height: 400px; overflow-y: auto; min-width: 320px; background-color: var(--surface-dark);">
+            <li><span class="dropdown-item text-muted small py-3 text-center bg-transparent">No new notifications</span></li>
+          </ul>
+        </div>
+        <a href="/profile" class="btn btn-primary rounded-pill px-4 fw-bold text-truncate" style="max-width: 150px;" th:text="${userName != null ? userName : 'My Profile'}">My Profile</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-5 animate-fade-in-up">
+  <div class="row align-items-center pb-4 mb-4 border-bottom border-secondary border-opacity-25 gy-3">
+    <div class="col-12 col-md-6 col-lg-7">
+      <h2 class="fw-bold mb-1 text-white">Events</h2>
+      <p class="text-muted mb-0">Browse upcoming events and coordinate travel plans.</p>
+    </div>
+    <div class="col-12 col-md-6 col-lg-5 d-flex justify-content-md-end align-items-center gap-3">
+      <a href="/activities/create" class="btn text-white rounded-pill px-4 py-2 fw-bold text-nowrap flex-shrink-0" style="background-color: #0ea5e9; border: none; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4) !important;">
+        <i class="bi bi-plus-lg me-2"></i> Create Event
+      </a>
+    </div>
+  </div>
+
+  <section class="mb-4">
+    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 mb-3">
+      <div class="card-body p-3 p-md-4">
+        <form method="get" th:action="@{/activities}" class="row g-3 align-items-end">
+          <input type="hidden" name="createdEvents" th:value="${createdEvents}">
+          <input type="hidden" name="joinedGroupEvents" th:value="${joinedGroupEvents}">
+          <div class="col-12 col-md-6 col-xl-4">
+            <label for="keywordFilter" class="form-label fw-semibold text-white">Keyword</label>
+            <div class="input-group">
+              <span class="input-group-text bg-transparent text-muted border-end-0"><i class="bi bi-search"></i></span>
+              <input id="keywordFilter" name="keyword" type="text" class="form-control bg-transparent text-white border-start-0 shadow-none" placeholder="Title or description" th:value="${filter.keyword}">
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label for="startsAfterFilter" class="form-label fw-semibold text-white">Starts after</label>
+            <input id="startsAfterFilter" name="startsAfter" type="datetime-local" class="form-control bg-transparent text-white shadow-none" th:value="${filter.startsAfter}">
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label for="startsBeforeFilter" class="form-label fw-semibold text-white">Starts before</label>
+            <input id="startsBeforeFilter" name="startsBefore" type="datetime-local" class="form-control bg-transparent text-white shadow-none" th:value="${filter.startsBefore}">
+          </div>
+          <div class="col-12 col-xl-6">
+            <label for="locationFilter" class="form-label fw-semibold text-white">Located near</label>
+            <div class="row g-2">
+              <div class="col-12 col-md position-relative">
+                <input id="locationFilter" name="locationAddress" type="text" class="form-control bg-transparent text-white shadow-none location-filter-input" placeholder="Address or place" autocomplete="off" th:value="${filter.locationAddress}">
+                <ul id="locationSuggestions" class="list-group position-absolute w-100 dropdown-shadow rounded-3 overflow-hidden mt-1" style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;"></ul>
+                <input type="hidden" id="locationLatitude" name="locationLatitude" th:value="${filter.locationLatitude}">
+                <input type="hidden" id="locationLongitude" name="locationLongitude" th:value="${filter.locationLongitude}">
+              </div>
+              <div class="col-12 col-md-auto">
+                <div class="input-group proximity-input-group">
+                  <span class="input-group-text bg-transparent text-muted border-secondary">Within</span>
+                  <input id="locationProximityMeters" name="locationProximityMeters" type="number" min="0" step="1" class="form-control bg-transparent text-white shadow-none border-secondary no-spinner" style="width: 6.5rem;" th:value="${filter.locationProximityMeters}">
+                  <span class="input-group-text bg-transparent text-muted border-secondary">m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 mt-3 mb-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="friendsOnlyFilter" name="friendsOnly" value="true" th:checked="${filter.friendsOnly}">
+              <label class="form-check-label fw-semibold text-white" for="friendsOnlyFilter">Events attended by friends only</label>
+            </div>
+          </div>
+          <div class="col-12 mt-2">
+            <div class="d-flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary rounded-pill px-4">Filter</button>
+              <a href="/activities" class="btn btn-outline-secondary rounded-pill px-4">Clear</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between flex-wrap align-items-center gap-3 mb-3">
+      <div class="d-flex flex-wrap gap-2">
+        <a class="event-filter-chip"
+           th:classappend="${createdEvents} ? ' active' : ''"
+           th:href="@{/activities(keyword=${filter.keyword},startsAfter=${filter.startsAfter},startsBefore=${filter.startsBefore},locationAddress=${filter.locationAddress},locationLatitude=${filter.locationLatitude},locationLongitude=${filter.locationLongitude},locationProximityMeters=${filter.locationProximityMeters},friendsOnly=${filter.friendsOnly},createdEvents=${createdEvents ? false : true},joinedGroupEvents=${joinedGroupEvents})}">
+          Created events
+        </a>
+        <a class="event-filter-chip"
+           th:classappend="${joinedGroupEvents} ? ' active' : ''"
+           th:href="@{/activities(keyword=${filter.keyword},startsAfter=${filter.startsAfter},startsBefore=${filter.startsBefore},locationAddress=${filter.locationAddress},locationLatitude=${filter.locationLatitude},locationLongitude=${filter.locationLongitude},locationProximityMeters=${filter.locationProximityMeters},friendsOnly=${filter.friendsOnly},createdEvents=${createdEvents},joinedGroupEvents=${joinedGroupEvents ? false : true})}">
+          Events with joined groups
+        </a>
+      </div>
+      <p class="text-muted mb-0">
+        <span class="text-white fw-bold" th:text="${allActivities != null ? #lists.size(allActivities) : 0}">0</span>
+        <span th:text="${allActivities != null and #lists.size(allActivities) == 1 ? 'event found' : 'events found'}">events found</span>
+      </p>
+    </div>
+  </section>
+
+  <th:block th:if="${allActivities != null}">
+    <section>
+      <h4 class="fw-bold mb-3 text-white">Upcoming Events</h4>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <div class="col" th:each="activityCard : ${allActivities}">
+          <div class="card activity-card h-100 bg-dark border border-secondary border-opacity-25">
+            <a th:href="@{/activities/{id}(id=${activityCard.activity.id})}" class="text-decoration-none d-block">
+              <div th:if="${activityCard.activity.imageUrl != null and !activityCard.activity.imageUrl.isEmpty()}" class="card-img-top" th:style="'background-image: url(' + ${activityCard.activity.imageUrl} + '); background-size: cover; background-position: center; height: 180px;'"></div>
+              <div th:unless="${activityCard.activity.imageUrl != null and !activityCard.activity.imageUrl.isEmpty()}" class="card-img-top d-flex align-items-center justify-content-center text-muted" style="background-color: rgba(255,255,255,0.02); height: 180px;"><i class="bi bi-image" style="font-size: 3rem;"></i></div>
+            </a>
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title fw-bold mb-1">
+                <a th:href="@{/activities/{id}(id=${activityCard.activity.id})}" class="text-decoration-none text-white" th:text="${activityCard.activity.title}">Activity Title</a>
+              </h5>
+              <p class="card-text text-muted mb-3 small"><i class="bi bi-geo-alt text-primary me-1"></i><span th:text="${activityCard.activity.locationAddress}">Location</span></p>
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <span th:if="${activityCard.hasAttendingFriends()}" class="badge bg-secondary bg-opacity-25 border border-secondary text-white fw-normal"><i class="bi bi-people-fill text-primary me-1"></i> <span th:text="${activityCard.friendAttendanceSummary.attendeeCount}">0</span> friends</span>
+                <span class="badge bg-secondary bg-opacity-25 border border-secondary text-white fw-normal"><i class="bi bi-signpost-2 text-primary me-1"></i> <span th:text="${activityCard.activeTravelGroupCount}">0</span> groups</span>
+              </div>
+              <div class="mt-auto d-flex justify-content-between align-items-center border-top border-secondary border-opacity-25 pt-3">
+                <small class="text-muted"><i class="bi bi-clock me-1"></i><span th:text="${#temporals.format(activityCard.activity.startTime, 'dd MMM yyyy')}">Date</span></small>
+                <a th:href="@{/travel-groups/activity/{id}(id=${activityCard.activity.id})}" class="btn btn-outline-light btn-sm px-3 rounded-pill">View groups</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </th:block>
+
+  <div th:if="${(#lists.isEmpty(activities) and allActivities == null) or (allActivities != null and #lists.isEmpty(allActivities))}" class="col-12 text-center text-muted mt-5">
+    <i class="bi bi-calendar-x fs-1 d-block mb-3 text-secondary"></i>
+    <h5 class="text-white">No events found.</h5>
+    <p class="text-muted">Why not be the first to create one?</p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('#nav-links .nav-link');
+    navLinks.forEach(link => {
+      if (currentPath.startsWith(link.getAttribute('href')) && link.getAttribute('href') !== '/') {
+        link.classList.remove('text-white-50');
+        link.classList.add('active', 'text-white', 'fw-bold');
+      }
+    });
+
+    function formatPhotonPlace(place) {
+      let displayName = place.name || place.street || "";
+      if (place.housenumber) displayName += " " + place.housenumber;
+      if (place.city || place.state) displayName += ", " + (place.city || place.state);
+      if (!displayName.includes("Belgium") && place.country) displayName += ", " + place.country;
+      return displayName || "Selected location";
+    }
+
+    function setupLocationFilter() {
+      const input = document.getElementById("locationFilter");
+      const list = document.getElementById("locationSuggestions");
+      const latitudeInput = document.getElementById("locationLatitude");
+      const longitudeInput = document.getElementById("locationLongitude");
+      if (!input || !list || !latitudeInput || !longitudeInput) return;
+
+      let debounceTimer;
+
+      input.addEventListener("input", function() {
+        clearTimeout(debounceTimer);
+        latitudeInput.value = "";
+        longitudeInput.value = "";
+
+        const query = this.value.trim();
+        if (query.length < 2) {
+          list.style.display = "none";
+          return;
+        }
+
+        debounceTimer = setTimeout(() => {
+          fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=51.2194&lon=4.4025&limit=5`)
+                  .then(response => response.json())
+                  .then(data => {
+                    list.innerHTML = "";
+                    if (!data.features || data.features.length === 0) {
+                      list.style.display = "none";
+                      return;
+                    }
+
+                    list.style.display = "block";
+                    data.features.forEach(feature => {
+                      const li = document.createElement("li");
+                      li.className = "list-group-item custom-suggestion-item py-2 px-3";
+                      li.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-geo-alt-fill text-success fs-5 me-3"></i><span class="fw-medium">${formatPhotonPlace(feature.properties)}</span></div>`;
+                      li.addEventListener("click", () => {
+                        input.value = formatPhotonPlace(feature.properties);
+                        latitudeInput.value = feature.geometry.coordinates[1];
+                        longitudeInput.value = feature.geometry.coordinates[0];
+                        list.style.display = "none";
+                      });
+                      list.appendChild(li);
+                    });
+                  });
+        }, 300);
+      });
+
+      document.addEventListener("click", function(event) {
+        if (event.target !== input && event.target !== list) list.style.display = "none";
+      });
+    }
+
+    setupLocationFilter();
+
+    // --- Global Notification System ---
+    fetch('/api/notifications')
+            .then(response => response.json())
+            .then(data => {
+              const bellIcon = document.getElementById('notification-bell');
+              const badge = document.getElementById('notification-badge');
+              const list = document.getElementById('notification-list');
+
+              const unreadCount = data.filter(note => !note.read).length;
+
+              if (data.length > 0) {
+                list.innerHTML = '';
+                if (unreadCount > 0) {
+                  badge.style.display = 'inline-block';
+                  badge.innerText = unreadCount;
+                }
+
+                const recentNotifications = data.slice(0, 5);
+                recentNotifications.forEach(note => {
+                  const date = new Date(note.createdAt).toLocaleDateString();
+                  let link = '#';
+                  if ((note.notificationType === 'ACTIVITY_UPDATE' || note.notificationType === 'ACTIVITY_INVITE' || note.notificationType === 'BUDDY_MATCH') && note.referenceId) link = '/activities/' + note.referenceId;
+                  else if (note.notificationType === 'GROUP_JOIN' && note.referenceId) link = '/travel-groups/' + note.referenceId;
+                  else if (note.notificationType === 'FRIEND_REQUEST') link = '/users';
+
+                  const bgClass = note.read ? '' : 'bg-primary bg-opacity-10';
+                  list.innerHTML += `
+                        <li>
+                            <a class="dropdown-item py-3 border-bottom border-secondary border-opacity-25 ${bgClass}" href="${link}">
+                                <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                                    <i class="bi bi-info-circle me-1"></i> ${note.title}
+                                </div>
+                                <div class="text-muted small text-wrap" style="width: 250px; line-height: 1.4;">${note.description}</div>
+                                <div class="text-muted" style="font-size: 0.75rem; margin-top: 6px;">${date}</div>
+                            </a>
+                        </li>`;
+                });
+
+                if (data.length > 5) {
+                  list.innerHTML += `<li><a class="dropdown-item text-center text-primary py-2 small fw-bold" href="#">View all ${data.length} notifications</a></li>`;
+                }
+              }
+
+              const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+              const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+
+              if (bellIcon) {
+                bellIcon.addEventListener('click', () => {
+                  if (unreadCount > 0) {
+                    fetch('/api/notifications/mark-read', {
+                      method: 'POST',
+                      headers: { [csrfHeader]: csrfToken }
+                    });
+                    badge.style.display = 'none';
+                    document.querySelectorAll('.bg-opacity-10').forEach(el => el.classList.remove('bg-primary', 'bg-opacity-10'));
+                  }
+                });
+              }
+            })
+            .catch(error => console.error("Error fetching notifications:", error));
+  });
+</script>
+</body>
+</html>

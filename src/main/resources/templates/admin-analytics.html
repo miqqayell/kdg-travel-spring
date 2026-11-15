@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KdG Travel - Admin Analytics</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+    <style>
+        .nav-link { font-weight: 500; transition: all 0.2s ease-in-out; padding: 0.5rem 1rem !important; }
+        .nav-link.active {
+            color: #20c997 !important;
+            background-color: rgba(32, 201, 151, 0.15);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+            <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+            <span class="text-white tracking-wide">KDG Travel</span>
+        </a>
+        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3 fw-medium" id="nav-links">
+                <li class="nav-item"><a class="nav-link text-white-50" href="/activities" id="nav-activities"><i class="bi bi-compass me-1"></i> Explore</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/map" id="nav-map"><i class="bi bi-map me-1"></i> Map</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/travel-groups" id="nav-travel-groups"><i class="bi bi-people me-1"></i> Groups</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/users" id="nav-users"><i class="bi bi-search me-1"></i> Users</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/analytics" id="nav-analytics"><i class="bi bi-bar-chart me-1"></i> Analytics</a></li>
+                <li class="nav-item" th:if="${canAccessAdminDashboard}"><a class="nav-link text-white-50" href="/admin" id="nav-admin"><i class="bi bi-shield-lock me-1"></i> Admin</a></li>
+            </ul>
+            <div class="d-flex align-items-center gap-4">
+                <div class="dropdown">
+                    <a href="#" class="text-white position-relative text-decoration-none fs-5 hover-scale" id="notification-bell" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell"></i>
+                        <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4" id="notification-list" style="max-height: 400px; overflow-y: auto; min-width: 320px; background-color: var(--surface-dark);">
+                        <li><span class="dropdown-item text-muted small py-3 text-center bg-transparent">No new notifications</span></li>
+                    </ul>
+                </div>
+                <a href="/profile" class="btn btn-primary rounded-pill px-4 fw-bold text-truncate" style="max-width: 150px;" th:text="${userName != null ? userName : 'My Profile'}">My Profile</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-5 animate-fade-in-up">
+    <div class="d-flex justify-content-between align-items-center pb-4 mb-4 border-bottom border-secondary border-opacity-25">
+        <div>
+            <h2 class="fw-bold mb-0 text-white">Admin Analytics Dashboard</h2>
+            <p class="text-muted mb-0">Overview of travel trends, transport usage, and CO₂ savings.</p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card activity-card h-100 text-center p-4 bg-dark border-secondary border-opacity-25 d-flex flex-column justify-content-center align-items-center">
+                <i class="bi bi-leaf text-success fs-1 mb-3"></i>
+                <h5 class="fw-bold text-white">Total CO₂ Savings</h5>
+                <div th:if="${!#lists.isEmpty(analytics.co2SavingsOverTime())}">
+                    <p class="display-5 fw-bold text-success mb-0">
+                        <span th:text="${#numbers.formatDecimal(analytics.co2SavingsOverTime().get(analytics.co2SavingsOverTime().size() - 1).co2SavedKg(), 1, 2)}">0.00</span> kg
+                    </p>
+                </div>
+                <p th:if="${#lists.isEmpty(analytics.co2SavingsOverTime())}" class="display-5 fw-bold text-success mb-0">0.00 kg</p>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card activity-card h-100 p-4 bg-dark border-secondary border-opacity-25">
+                <h5 class="fw-bold mb-3 text-white">
+                    <i class="bi bi-graph-up-arrow text-success me-2"></i> Total CO₂ Savings Over Time
+                </h5>
+                <div th:if="${#lists.isEmpty(analytics.co2SavingsOverTime())}" class="text-muted">No CO₂ savings data available yet.</div>
+                <div th:if="${!#lists.isEmpty(analytics.co2SavingsOverTime())}"><canvas id="adminCo2Chart" height="100"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card activity-card h-100 text-center p-4 bg-dark border-secondary border-opacity-25 d-flex flex-column justify-content-center align-items-center">
+                <i class="bi bi-star-fill text-warning fs-1 mb-3"></i>
+                <h5 class="fw-bold text-white">#1 Top Activity</h5>
+                <div th:if="${!#lists.isEmpty(analytics.mostPopularActivities())}">
+                    <p class="h4 fw-bold text-warning mb-1" th:text="${analytics.mostPopularActivities().get(0).activityTitle()}">Activity</p>
+                    <small class="text-muted"><span th:text="${analytics.mostPopularActivities().get(0).groupCount()}">0</span> groups</small>
+                </div>
+                <p th:if="${#lists.isEmpty(analytics.mostPopularActivities())}" class="text-muted mb-0">No activity data yet</p>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card activity-card h-100 p-4 bg-dark border-secondary border-opacity-25">
+                <h5 class="fw-bold mb-3 text-white"><i class="bi bi-bar-chart-fill text-warning me-2"></i> Most Popular Activities</h5>
+                <div th:if="${#lists.isEmpty(analytics.mostPopularActivities())}" class="text-muted">No activity data available yet.</div>
+                <div th:if="${!#lists.isEmpty(analytics.mostPopularActivities())}"><canvas id="activitiesChart" height="100"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card activity-card h-100 text-center p-4 bg-dark border-secondary border-opacity-25 d-flex flex-column justify-content-center align-items-center">
+                <i class="bi bi-signpost-split-fill text-primary fs-1 mb-3"></i>
+                <h5 class="fw-bold text-white">#1 Transport Mode</h5>
+                <div th:if="${!#lists.isEmpty(analytics.popularTransportModes())}">
+                    <p class="h4 fw-bold text-primary mb-1" th:text="${analytics.popularTransportModes().get(0).transportMode()}">Mode</p>
+                    <small class="text-muted"><span th:text="${analytics.popularTransportModes().get(0).groupCount()}">0</span> groups</small>
+                </div>
+                <p th:if="${#lists.isEmpty(analytics.popularTransportModes())}" class="text-muted mb-0">No transport mode data yet</p>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card activity-card h-100 p-4 bg-dark border-secondary border-opacity-25">
+                <h5 class="fw-bold mb-3 text-white"><i class="bi bi-bar-chart-fill text-primary me-2"></i> Popular Transport Modes</h5>
+                <div th:if="${#lists.isEmpty(analytics.popularTransportModes())}" class="text-muted">No transport mode data available yet.</div>
+                <div th:if="${!#lists.isEmpty(analytics.popularTransportModes())}"><canvas id="transportModesChart" height="100"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-9">
+            <div class="card activity-card h-100 p-4 bg-dark border-secondary border-opacity-25" style="min-height: 400px;">
+                <h5 class="fw-bold mb-3 text-white"><i class="bi bi-clock-history text-primary me-2"></i> Travel Times</h5>
+                <canvas id="peakTimesChart" height="250"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card activity-card h-100 text-center p-4 bg-dark border-secondary border-opacity-25 d-flex flex-column justify-content-center align-items-center">
+                <i class="bi bi-people-fill text-success fs-1 mb-3"></i>
+                <h5 class="fw-bold text-white">Average Group Size</h5>
+                <p class="display-5 fw-bold text-success mb-0" th:text="${#numbers.formatDecimal(analytics.averageGroupSize(), 1, 1)}">0.0</p>
+                <small class="text-muted">members per group</small>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('#nav-links .nav-link');
+        navLinks.forEach(link => {
+            if (currentPath.startsWith(link.getAttribute('href')) && link.getAttribute('href') !== '/') {
+                link.classList.remove('text-white-50');
+                link.classList.add('active');
+            }
+        });
+
+        // Setup Dark Theme for Charts
+        Chart.defaults.color = '#a0aabf';
+        const gridColor = 'rgba(255,255,255,0.1)';
+
+        const adminCo2Labels = /*[[${analytics.co2SavingsOverTime().![date()]}]]*/ [];
+        const adminCo2Data = /*[[${analytics.co2SavingsOverTime().![co2SavedKg()]}]]*/ [];
+        const activityLabels = /*[[${analytics.mostPopularActivities().![activityTitle()]}]]*/ [];
+        const activityData = /*[[${analytics.mostPopularActivities().![groupCount()]}]]*/ [];
+        const transportLabels = /*[[${analytics.popularTransportModes().![transportMode()]}]]*/ [];
+        const transportData = /*[[${analytics.popularTransportModes().![groupCount()]}]]*/ [];
+        const peakTimeLabels = /*[[${analytics.peakTravelTimes().![timeLabel()]}]]*/ [];
+        const peakTimeData = /*[[${analytics.peakTravelTimes().![tripCount()]}]]*/ [];
+
+        const adminCo2Canvas = document.getElementById('adminCo2Chart');
+        if (adminCo2Canvas) {
+            new Chart(adminCo2Canvas, {
+                type: 'line',
+                data: {
+                    labels: adminCo2Labels,
+                    datasets: [{ label: 'Total CO₂ saved (kg)', data: adminCo2Data, tension: 0.3, fill: false, borderColor: '#20c997', backgroundColor: '#20c997' }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, grid: {color: gridColor} }, x: {grid: {color: gridColor}} } }
+            });
+        }
+
+        const activitiesCanvas = document.getElementById('activitiesChart');
+        if (activitiesCanvas) {
+            new Chart(activitiesCanvas, {
+                type: 'bar',
+                data: { labels: activityLabels, datasets: [{ label: 'Groups', data: activityData, backgroundColor: '#ffc107' }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: {color: gridColor} }, x: {grid: {color: gridColor}} } }
+            });
+        }
+
+        const transportCanvas = document.getElementById('transportModesChart');
+        if (transportCanvas) {
+            new Chart(transportCanvas, {
+                type: 'bar',
+                data: { labels: transportLabels, datasets: [{ label: 'Groups', data: transportData, backgroundColor: '#0ea5e9' }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: {color: gridColor} }, x: {grid: {color: gridColor}} } }
+            });
+        }
+
+        const peakTimesCanvas = document.getElementById('peakTimesChart');
+        if (peakTimesCanvas) {
+            new Chart(peakTimesCanvas, {
+                type: 'bar',
+                data: { labels: peakTimeLabels, datasets: [{ label: 'Trips', data: peakTimeData, barPercentage: 1.0, categoryPercentage: 1.0, backgroundColor: '#a855f7' }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: {color: gridColor} }, x: {grid: {color: gridColor}} } }
+            });
+        }
+
+        // Setup Notifications
+        // --- Global Notification System ---
+        fetch('/api/notifications')
+            .then(response => response.json())
+            .then(data => {
+                const bellIcon = document.getElementById('notification-bell');
+                const badge = document.getElementById('notification-badge');
+                const list = document.getElementById('notification-list');
+
+                const unreadCount = data.filter(note => !note.read).length;
+
+                if (data.length > 0) {
+                    list.innerHTML = '';
+                    if (unreadCount > 0) {
+                        badge.style.display = 'inline-block';
+                        badge.innerText = unreadCount;
+                    }
+
+                    const recentNotifications = data.slice(0, 5);
+                    recentNotifications.forEach(note => {
+                        const date = new Date(note.createdAt).toLocaleDateString();
+                        let link = '#';
+                        if ((note.notificationType === 'ACTIVITY_UPDATE' || note.notificationType === 'ACTIVITY_INVITE' || note.notificationType === 'BUDDY_MATCH') && note.referenceId) link = '/activities/' + note.referenceId;
+                        else if (note.notificationType === 'GROUP_JOIN' && note.referenceId) link = '/travel-groups/' + note.referenceId;
+                        else if (note.notificationType === 'FRIEND_REQUEST') link = '/users';
+
+                        const bgClass = note.read ? '' : 'bg-primary bg-opacity-10';
+                        list.innerHTML += `
+                        <li>
+                            <a class="dropdown-item py-3 border-bottom border-secondary border-opacity-25 ${bgClass}" href="${link}">
+                                <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                                    <i class="bi bi-info-circle me-1"></i> ${note.title}
+                                </div>
+                                <div class="text-muted small text-wrap" style="width: 250px; line-height: 1.4;">${note.description}</div>
+                                <div class="text-muted" style="font-size: 0.75rem; margin-top: 6px;">${date}</div>
+                            </a>
+                        </li>`;
+                    });
+
+                    if (data.length > 5) {
+                        list.innerHTML += `<li><a class="dropdown-item text-center text-primary py-2 small fw-bold" href="#">View all ${data.length} notifications</a></li>`;
+                    }
+                }
+
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+
+                if (bellIcon) {
+                    bellIcon.addEventListener('click', () => {
+                        if (unreadCount > 0) {
+                            fetch('/api/notifications/mark-read', {
+                                method: 'POST',
+                                headers: { [csrfHeader]: csrfToken }
+                            });
+                            badge.style.display = 'none';
+                            document.querySelectorAll('.bg-opacity-10').forEach(el => el.classList.remove('bg-primary', 'bg-opacity-10'));
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error("Error fetching notifications:", error));
+    });
+</script>
+</body>
+</html>

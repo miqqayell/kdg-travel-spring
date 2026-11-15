@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Submit Report - KDG Travel</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+
+<div class="container py-5" style="max-width: 760px;">
+    <div class="mb-4">
+        <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i>Back
+        </a>
+    </div>
+
+    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+            <h2 class="fw-bold text-white mb-2">Submit Report</h2>
+            <p class="text-muted mb-4">
+                You are reporting this <span th:text="${targetType}">item</span>:
+                <strong class="text-white" th:text="${targetTitle}">Target</strong>
+            </p>
+
+            <div th:if="${formError}" class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4" th:text="${formError}"></div>
+
+            <form th:action="@{${formAction}}" th:object="${reportRequest}" method="post">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <input type="hidden" th:field="*{reportedUserId}">
+                <input type="hidden" th:field="*{reportedActivityId}">
+                <input type="hidden" th:field="*{reportedTravelGroupId}">
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-white">Report type</label>
+                    <select class="form-select bg-dark text-white border-secondary" th:field="*{type}" required>
+                        <option value="">Choose a reason</option>
+                        <option th:each="type : ${reportTypes}"
+                                th:value="${type}"
+                                th:text="${#strings.replace(type.name(), '_', ' ')}">
+                            INAPPROPRIATE BEHAVIOUR
+                        </option>
+                    </select>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('type')}" th:errors="*{type}"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-white">Short reason</label>
+                    <input type="text"
+                           class="form-control bg-transparent text-white border-secondary"
+                           th:field="*{reason}"
+                           placeholder="Example: inappropriate behaviour">
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('reason')}" th:errors="*{reason}"></div>
+                </div>
+
+                <div class="mb-5">
+                    <label class="form-label fw-bold text-white">Extra information</label>
+                    <textarea class="form-control bg-transparent text-white border-secondary"
+                              rows="5"
+                              th:field="*{extraInformation}"
+                              placeholder="Describe what happened. Include details that can help moderators review the report."></textarea>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('extraInformation')}" th:errors="*{extraInformation}"></div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-2">
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                    <button type="submit" class="btn btn-danger rounded-pill px-5 fw-bold">
+                        Submit Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

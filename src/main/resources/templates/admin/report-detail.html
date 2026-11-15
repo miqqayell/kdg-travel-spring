@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Details - Admin Dashboard</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+    <style>
+        .nav-link { font-weight: 500; transition: all 0.2s ease-in-out; padding: 0.5rem 1rem !important; }
+        .nav-link.active { color: #20c997 !important; background-color: rgba(32, 201, 151, 0.15); border-radius: 8px; }
+        .admin-side-link { transition: all 0.2s ease-in-out; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+            <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+            <span class="text-white tracking-wide">KDG Travel</span>
+        </a>
+
+        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3 fw-medium" id="nav-links">
+                <li class="nav-item"><a class="nav-link text-white-50" href="/activities"><i class="bi bi-compass me-1"></i> Explore</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/map"><i class="bi bi-map me-1"></i> Map</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/travel-groups"><i class="bi bi-people me-1"></i> Groups</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/users"><i class="bi bi-search me-1"></i> Users</a></li>
+                <li class="nav-item"><a class="nav-link text-white-50" href="/analytics"><i class="bi bi-bar-chart me-1"></i> Analytics</a></li>
+                <li class="nav-item"><a class="nav-link active text-white fw-bold" href="/admin"><i class="bi bi-shield-lock me-1"></i> Admin</a></li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-4">
+                <div class="dropdown">
+                    <a href="#" class="text-white position-relative text-decoration-none fs-5 hover-scale" id="notification-bell" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell"></i>
+                        <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4" id="notification-list" style="max-height: 400px; overflow-y: auto; min-width: 320px; background-color: var(--surface-dark);">
+                        <li><span class="dropdown-item text-muted small py-3 text-center bg-transparent">No new notifications</span></li>
+                    </ul>
+                </div>
+
+                <a href="/profile" class="btn btn-primary rounded-pill px-4 fw-bold text-truncate" style="max-width: 150px;" th:text="${userName != null ? userName : 'My Profile'}">
+                    My Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-5 animate-fade-in-up">
+    <div class="row g-4">
+
+        <div class="col-12 col-lg-9">
+            <div class="d-flex justify-content-between align-items-center pb-4 mb-4 border-bottom border-secondary border-opacity-25 flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold mb-1 text-white">Report Details</h2>
+                    <p class="text-muted mb-0">Review report information and take action.</p>
+                </div>
+
+                <a href="/admin/reports" class="btn btn-outline-secondary rounded-pill px-4">
+                    <i class="bi bi-arrow-left me-2"></i>Back
+                </a>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-12 col-xl-8">
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between flex-wrap gap-2 mb-4">
+                                <div>
+                                    <h4 class="fw-bold text-white mb-1" th:text="${#strings.replace(report.type.name(), '_', ' ')}">
+                                        Report type
+                                    </h4>
+                                    <p class="text-muted mb-0">
+                                        Created
+                                        <span th:text="${#temporals.format(report.createdAt, 'dd MMM yyyy HH:mm')}">date</span>
+                                    </p>
+                                </div>
+
+                                <span class="badge align-self-start"
+                                      th:classappend="${report.status.name() == 'OPEN'} ? ' text-bg-danger' : (${report.status.name() == 'IN_REVIEW'} ? ' text-bg-warning' : ' text-bg-secondary')"
+                                      th:text="${report.status}">
+                  OPEN
+                </span>
+                            </div>
+
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-muted text-uppercase small">Short reason</h6>
+                                <p class="text-white mb-0" th:text="${report.reason != null ? report.reason : 'No short reason provided.'}">
+                                    Reason
+                                </p>
+                            </div>
+
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-muted text-uppercase small">Extra information</h6>
+                                <p class="text-white mb-0" th:text="${report.extraInformation != null ? report.extraInformation : 'No extra information provided.'}">
+                                    Extra information
+                                </p>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded-4 border border-secondary border-opacity-25 bg-black bg-opacity-25 h-100">
+                                        <h6 class="fw-bold text-muted text-uppercase small">Reporter</h6>
+                                        <p class="text-white mb-1" th:text="${report.reporterUser.username}">Reporter</p>
+                                        <p class="text-muted small mb-0" th:text="${report.reporterUser.email}">email</p>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded-4 border border-secondary border-opacity-25 bg-black bg-opacity-25 h-100">
+                                        <h6 class="fw-bold text-muted text-uppercase small">Reported User</h6>
+                                        <p class="text-white mb-1" th:text="${report.reportedUser.username}">Reported</p>
+                                        <p class="text-muted small mb-1" th:text="${report.reportedUser.email}">email</p>
+                                        <span class="badge text-bg-secondary" th:text="${report.reportedUser.status}">ACTIVE</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4" th:if="${report.reportedActivity != null}">
+                                <div class="p-3 rounded-4 border border-secondary border-opacity-25 bg-black bg-opacity-25">
+                                    <h6 class="fw-bold text-muted text-uppercase small">Reported Event</h6>
+                                    <p class="text-white mb-2" th:text="${report.reportedActivity.title}">Event</p>
+                                    <a th:href="@{/activities/{id}(id=${report.reportedActivity.id})}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                                        View Event
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-4" th:if="${report.reportedTravelGroup != null}">
+                                <div class="p-3 rounded-4 border border-secondary border-opacity-25 bg-black bg-opacity-25">
+                                    <h6 class="fw-bold text-muted text-uppercase small">Reported Travel Group</h6>
+                                    <p class="text-white mb-2" th:text="${report.reportedTravelGroup.title}">Group</p>
+                                    <a th:href="@{/travel-groups/{id}(id=${report.reportedTravelGroup.id})}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                                        View Travel Group
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-4" th:if="${report.handledByModerator != null}">
+                                <div class="p-3 rounded-4 border border-secondary border-opacity-25 bg-black bg-opacity-25">
+                                    <h6 class="fw-bold text-muted text-uppercase small">Handled By</h6>
+                                    <p class="text-white mb-0" th:text="${report.handledByModerator.username}">Moderator</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold text-white mb-3">Actions</h4>
+
+                            <form th:action="@{/admin/reports/{id}/dismiss(id=${report.id})}" method="post" class="mb-2">
+                                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="btn btn-outline-secondary rounded-pill w-100" type="submit">
+                                    Dismiss Report
+                                </button>
+                            </form>
+
+                            <form th:action="@{/admin/reports/{id}/warn(id=${report.id})}" method="post" class="mb-2">
+                                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="btn btn-outline-warning rounded-pill w-100" type="submit">
+                                    Warn User
+                                </button>
+                            </form>
+
+                            <form th:action="@{/admin/reports/{id}/suspend(id=${report.id})}" method="post" class="mb-2">
+                                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                                <label class="form-label text-white small fw-bold">Suspend Duration</label>
+                                <select name="days" class="form-select bg-dark text-white border-secondary mb-2">
+                                    <option value="1">1 day</option>
+                                    <option value="3">3 days</option>
+                                    <option value="7">1 week</option>
+                                    <option value="30">1 month</option>
+                                </select>
+
+                                <button class="btn btn-warning rounded-pill w-100 text-dark fw-bold" type="submit">
+                                    Suspend User
+                                </button>
+                            </form>
+
+                            <form th:action="@{/admin/reports/{id}/ban(id=${report.id})}" method="post" class="mb-2">
+                                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="btn btn-danger rounded-pill w-100 fw-bold" type="submit"
+                                        onclick="return confirm('Are you sure you want to ban this user?');">
+                                    Ban User
+                                </button>
+                            </form>
+
+                            <hr class="border-secondary border-opacity-25 my-4">
+
+                            <form th:action="@{/admin/reports/{id}/resolve(id=${report.id})}" method="post">
+                                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="btn btn-success rounded-pill w-100 fw-bold" type="submit">
+                                    Resolve Report
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="col-12 col-lg-3">
+            <div class="card bg-dark border-secondary border-opacity-25 rounded-4 sticky-lg-top shadow-sm" style="top: 100px;">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center gap-2 mb-3 px-2">
+                        <i class="bi bi-shield-lock text-primary fs-4"></i>
+                        <div>
+                            <h6 class="text-white fw-bold mb-0">Admin Panel</h6>
+                            <small class="text-muted">Moderation tools</small>
+                        </div>
+                    </div>
+
+                    <div class="nav flex-column gap-2">
+                        <a href="/admin/overview"
+                           class="nav-link rounded-3 px-3 py-2"
+                           th:classappend="${activeAdminPage == 'overview'} ? ' active text-white fw-bold' : ' text-white-50'">
+                            <i class="bi bi-speedometer2 me-2"></i>Overview
+                        </a>
+
+                        <a href="/admin/reports"
+                           class="nav-link rounded-3 px-3 py-2"
+                           th:classappend="${activeAdminPage == 'reports'} ? ' active text-white fw-bold' : ' text-white-50'">
+                            <i class="bi bi-flag me-2"></i>Reports
+                        </a>
+
+                        <a href="/admin/events"
+                           class="nav-link rounded-3 px-3 py-2"
+                           th:classappend="${activeAdminPage == 'events'} ? ' active text-white fw-bold' : ' text-white-50'">
+                            <i class="bi bi-calendar-check me-2"></i>Events
+                        </a>
+
+                        <a href="/admin/users"
+                           class="nav-link rounded-3 px-3 py-2"
+                           th:classappend="${activeAdminPage == 'users'} ? ' active text-white fw-bold' : ' text-white-50'">
+                            <i class="bi bi-person-gear me-2"></i>Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch('/api/notifications')
+            .then(response => response.json())
+            .then(data => {
+                const bellIcon = document.getElementById('notification-bell');
+                const badge = document.getElementById('notification-badge');
+                const list = document.getElementById('notification-list');
+                const unreadCount = data.filter(note => !note.read).length;
+
+                if (data.length > 0) {
+                    list.innerHTML = '';
+                    if (unreadCount > 0) {
+                        badge.style.display = 'inline-block';
+                        badge.innerText = unreadCount;
+                    }
+
+                    data.slice(0, 5).forEach(note => {
+                        const date = new Date(note.createdAt).toLocaleDateString();
+                        let link = '#';
+                        if ((note.notificationType === 'ACTIVITY_UPDATE' || note.notificationType === 'ACTIVITY_INVITE' || note.notificationType === 'BUDDY_MATCH') && note.referenceId) link = '/activities/' + note.referenceId;
+                        else if (note.notificationType === 'GROUP_JOIN' && note.referenceId) link = '/travel-groups/' + note.referenceId;
+                        else if (note.notificationType === 'FRIEND_REQUEST') link = '/users';
+
+                        const bgClass = note.read ? '' : 'bg-primary bg-opacity-10';
+                        list.innerHTML += `
+              <li>
+                <a class="dropdown-item py-3 border-bottom border-secondary border-opacity-25 ${bgClass}" href="${link}">
+                  <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                    <i class="bi bi-info-circle me-1"></i> ${note.title}
+                  </div>
+                  <div class="text-muted small text-wrap" style="width: 250px; line-height: 1.4;">${note.description}</div>
+                  <div class="text-muted" style="font-size: 0.75rem; margin-top: 6px;">${date}</div>
+                </a>
+              </li>`;
+                    });
+                }
+
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+
+                if (bellIcon) {
+                    bellIcon.addEventListener('click', () => {
+                        if (unreadCount > 0) {
+                            fetch('/api/notifications/mark-read', {
+                                method: 'POST',
+                                headers: { [csrfHeader]: csrfToken }
+                            });
+                            badge.style.display = 'none';
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error("Error fetching notifications:", error));
+    });
+</script>
+</body>
+</html>

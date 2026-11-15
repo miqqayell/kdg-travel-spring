@@ -1,0 +1,118 @@
+stages:
+  - build
+  - test
+  - deploy
+  - destroy
+
+variables:
+  JAR_FILE: "build/libs/*.jar"
+
+build:
+  stage: build
+  image: gradle:8-jdk21
+  script:
+    - gradle clean bootJar -x test
+  artifacts:
+    paths:
+      - $JAR_FILE
+    expire_in: 1 hour
+
+test:
+  stage: test
+  image: gradle:8-jdk21
+  services:
+    - name: postgres:15
+      alias: postgres
+  variables:
+    POSTGRES_DB: testdb
+    POSTGRES_USER: testuser
+    POSTGRES_PASSWORD: testpassword
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/testdb"
+    SPRING_DATASOURCE_USERNAME: "testuser"
+    SPRING_DATASOURCE_PASSWORD: "testpassword"
+    SPRING_JPA_HIBERNATE_DDL_AUTO: "create-drop"
+  before_script:
+    - apt-get update -y
+    - apt-get install -y netcat-openbsd
+    - until nc -z postgres 5432; do sleep 2; done
+  script:
+    - gradle test
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/TEST-*.xml
+    paths:
+      - build/reports/tests/test/
+    expire_in: 1 week
+
+
+
+deploy:
+  stage: deploy
+  image: google/cloud-sdk:slim
+  needs:
+    - build
+    - test
+
+  before_script:
+    - test -n "$GCLOUD_SERVICE_KEY"
+    - test -n "$GCP_PROJECT_ID"
+    - test -n "$GCP_ZONE"
+    - test -n "$VM_NAME"
+    - test -n "$VM_USER"
+    - test -n "$SSH_PRIVATE_KEY"
+    - test -n "$SSH_PUBLIC_KEY"
+    - test -n "$DB_INSTANCE"
+    - test -n "$DB_NAME"
+    - test -n "$DB_USER"
+    - test -n "$DB_PASSWORD"
+    - test -n "$DUCKDNS_TOKEN"
+    - test -n "$DUCKDNS_SUBDOMAIN"
+    - test -n "$DOMAIN"
+    - test -n "$EMAIL"
+
+    - echo "$GCLOUD_SERVICE_KEY" > key.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud config set project "$GCP_PROJECT_ID"
+
+    - bash scripts/firewall.sh
+    - bash scripts/create-vm.sh
+    - gcloud compute instances add-tags "$VM_NAME" --zone="$GCP_ZONE" --tags=ssh-server,http-server,https-server
+
+    - export VM_IP=$(gcloud compute instances describe "$VM_NAME" --zone="$GCP_ZONE" --format="get(networkInterfaces[0].accessConfigs[0].natIP)")
+    - test -n "$VM_IP"
+    - echo "VM_IP=$VM_IP"
+
+    - bash scripts/create-db.sh
+
+    - export DB_IP=$(gcloud sql instances describe "$DB_INSTANCE" --format="get(ipAddresses[0].ipAddress)")
+    - test -n "$DB_IP"
+    - echo "DB_IP=$DB_IP"
+
+    - bash scripts/ci-ssh-setup.sh
+
+  script:
+    - bash scripts/deploy-app.sh
+
+destroy:
+  stage: destroy
+  image: google/cloud-sdk:slim
+  when: manual
+  allow_failure: false
+  before_script:
+    - test -n "$GCLOUD_SERVICE_KEY"
+    - test -n "$GCP_PROJECT_ID"
+    - test -n "$GCP_ZONE"
+    - test -n "$VM_NAME"
+    - test -n "$DB_INSTANCE"
+
+    - echo "$GCLOUD_SERVICE_KEY" > key.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud config set project "$GCP_PROJECT_ID"
+
+  script:
+    - gcloud compute instances delete "$VM_NAME" --zone="$GCP_ZONE" --quiet || true
+    - gcloud sql instances delete "$DB_INSTANCE" --quiet || true
+    - gcloud compute firewall-rules delete allow-ssh --quiet || true
+    - gcloud compute firewall-rules delete allow-http --quiet || true
+    - gcloud compute firewall-rules delete allow-https --quiet || true

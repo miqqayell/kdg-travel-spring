@@ -1,0 +1,53 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: spring-backend
+  profiles:
+    active: dev
+  sql:
+    init:
+      mode: never
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+
+delijn:
+  api:
+    base-url: https://api.delijn.be
+    subscription-key: ${DELIJN_API_KEY:}
+    timeout: 5s
+    max-nearby-stops: 3
+    max-departures-per-stop: 50
+    realtime-cache-seconds: 30
+    stop-cache-seconds: 3600
+    gtfs-static-url: https://api.delijn.be/gtfs/static/v3/gtfs_transit.zip
+    gtfs-static-subscription-key: ${DELIJN_GTFS_STATIC_KEY:}
+    gtfs-realtime-url: https://api.delijn.be/gtfs/v3/realtime
+    gtfs-realtime-subscription-key: ${DELIJN_GTFS_REALTIME_KEY:}
+    gtfs-cache-directory: .cache/delijn
+    gtfs-static-cache-hours: 24
+    max-walking-distance-meters: 1200
+    max-transfer-walking-distance-meters: 250
+    max-transfers: 2
+    max-transit-search-minutes: 180
+    max-origin-stops-for-routing: 10
+    max-destination-stops-for-routing: 8
+    max-departures-per-origin-stop-for-routing: 10
+    max-transfer-alight-stops: 64
+    max-transfer-departures-per-stop: 6
+    gtfs-first-load-wait-millis: 1500
+    gtfs-planning-window-days: 28
+
+route-selection:
+  token-ttl-minutes: 30
+
+routing:
+  pedestrian:
+    base-url: https://routing.openstreetmap.de/routed-foot
+    profile: foot
+    request-timeout: 3s
+

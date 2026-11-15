@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to KDG Travel</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #0ea5e9, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-section {
+      min-height: 76vh;
+      display: flex;
+      align-items: center;
+    }
+
+    .hero-eyebrow {
+      color: #38bdf8;
+      font-size: 0.9rem;
+      letter-spacing: 0;
+    }
+
+    .landing-visual {
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.32);
+    }
+
+    .route-step {
+      padding-left: 1rem;
+    }
+
+    .landing-pill {
+      background-color: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 0.45rem 0.8rem;
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(14, 165, 233, 0.12);
+      color: var(--primary-color);
+    }
+
+    .delay-1 { animation-delay: 0.2s; }
+    .delay-2 { animation-delay: 0.4s; }
+
+    #features {
+      scroll-margin-top: 100px;
+    }
+  </style>
+</head>
+<body class="overflow-x-hidden">
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+  <div class="container d-flex justify-content-between">
+    <div class="animate-fade-in-up">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+        <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+        <span class="text-white tracking-wide">KDG Travel</span>
+      </a>
+    </div>
+    <a href="/login" class="btn btn-primary rounded-pill px-4 fw-bold">Sign In</a>
+  </div>
+</nav>
+
+<div class="container hero-section position-relative">
+  <div class="row align-items-center w-100 gy-5">
+    <div class="col-lg-7 animate-fade-in-up">
+      <p class="hero-eyebrow fw-bold text-uppercase mb-3">Safer, easier student travel</p>
+      <h1 class="display-4 fw-bold mb-3 tracking-tight">
+        Explore the world with <br>
+        <span class="text-gradient">your fellow students.</span>
+      </h1>
+      <p class="lead text-muted mb-4 animate-fade-in-up delay-1" style="font-size: 1.2rem;">
+        Find classmates heading the same way, choose a shared route, and arrive with people you can trust.
+      </p>
+      <div class="d-flex flex-wrap gap-2 mb-4 animate-fade-in-up delay-1">
+        <span class="landing-pill"><i class="bi bi-shield-check me-2 text-success"></i>Travel in groups</span>
+        <span class="landing-pill"><i class="bi bi-bus-front me-2 text-success"></i>Use smarter routes</span>
+        <span class="landing-pill"><i class="bi bi-people me-2 text-success"></i>Meet your community</span>
+      </div>
+      <div class="d-flex flex-wrap gap-3 animate-fade-in-up delay-2">
+        <a href="/login" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-lg">Sign in with KdG</a>
+        <a href="#features" class="btn btn-outline-secondary btn-lg rounded-pill px-4 py-3 fw-bold border-2">See how it works</a>
+      </div>
+    </div>
+    <div class="col-lg-5 animate-fade-in-up delay-1">
+      <div class="landing-visual p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+          <div>
+            <p class="text-muted small mb-1">Tonight's plan</p>
+            <h2 class="h4 fw-bold mb-0">Campus to event</h2>
+          </div>
+          <span class="badge bg-success bg-opacity-25 border border-success text-success rounded-pill px-3 py-2">4 joined</span>
+        </div>
+        <div class="route-step pb-4">
+          <p class="fw-semibold mb-1"><i class="bi bi-geo-alt text-primary me-2"></i>Meet near campus</p>
+          <p class="text-muted small mb-0">Pick a start point that works for the group.</p>
+        </div>
+        <div class="route-step pb-4">
+          <p class="fw-semibold mb-1"><i class="bi bi-signpost-2 text-primary me-2"></i>Choose a shared route</p>
+          <p class="text-muted small mb-0">Walk, bike, carpool, or take public transport together.</p>
+        </div>
+        <div class="route-step">
+          <p class="fw-semibold mb-1"><i class="bi bi-chat-dots text-primary me-2"></i>Coordinate before you leave</p>
+          <p class="text-muted small mb-0">Use the group chat to confirm timing and updates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="features" class="container py-5 animate-fade-in-up delay-2">
+  <div class="row g-4 text-center mt-4 mb-5">
+    <div class="col-md-4">
+      <div class="p-4 card h-100 border-0 bg-transparent shadow-none">
+        <span class="feature-icon mx-auto mb-3"><i class="bi bi-calendar-event fs-4"></i></span>
+        <h4 class="fw-bold">Find events</h4>
+        <p class="text-muted">Browse activities and see where travel groups are already forming.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-4 card h-100 border-0 bg-transparent shadow-none">
+        <span class="feature-icon mx-auto mb-3"><i class="bi bi-people fs-4"></i></span>
+        <h4 class="fw-bold">Join a group</h4>
+        <p class="text-muted">Travel with classmates for a safer trip and a more social start to the event.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-4 card h-100 border-0 bg-transparent shadow-none">
+        <span class="feature-icon mx-auto mb-3"><i class="bi bi-recycle fs-4"></i></span>
+        <h4 class="fw-bold">Travel sustainably</h4>
+        <p class="text-muted">Share rides, plan public transport, and make sustainable choices easier.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

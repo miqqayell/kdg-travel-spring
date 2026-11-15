@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KdG Travel - Event Map</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+  <style>
+    .nav-link.active { color: #20c997 !important; background-color: rgba(32, 201, 151, 0.15); border-radius: 8px; }
+    #activityMap { height: 75vh; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.1); }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+      <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+      <span class="text-white tracking-wide">KDG Travel</span>
+    </a>
+    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3 fw-medium" id="nav-links">
+        <li class="nav-item"><a class="nav-link text-white-50" href="/activities" id="nav-activities"><i class="bi bi-compass me-1"></i> Explore</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/map" id="nav-map"><i class="bi bi-map me-1"></i> Map</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/travel-groups" id="nav-travel-groups"><i class="bi bi-people me-1"></i> Groups</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/users" id="nav-users"><i class="bi bi-search me-1"></i> Users</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/analytics" id="nav-analytics"><i class="bi bi-bar-chart me-1"></i> Analytics</a></li>
+        <li class="nav-item" th:if="${canAccessAdminDashboard}"><a class="nav-link text-white-50" href="/admin" id="nav-admin"><i class="bi bi-shield-lock me-1"></i> Admin</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-4">
+        <div class="dropdown">
+          <a href="#" class="text-white position-relative text-decoration-none fs-5 hover-scale" id="notification-bell" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">0</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4" id="notification-list" style="max-height: 400px; overflow-y: auto; min-width: 320px; background-color: var(--surface-dark);">
+            <li><span class="dropdown-item text-muted small py-3 text-center bg-transparent">No new notifications</span></li>
+          </ul>
+        </div>
+        <a href="/profile" class="btn btn-primary rounded-pill px-4 fw-bold text-truncate" style="max-width: 150px;" th:text="${userName != null ? userName : 'My Profile'}">My Profile</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4 animate-fade-in-up">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h2 class="fw-bold text-white mb-0">Explore Upcoming Events</h2>
+    <button id="liveLocationBtn" class="btn btn-outline-info rounded-pill fw-bold shadow-sm">
+      <i class="bi bi-geo-alt me-2"></i> Enable Location
+    </button>
+  </div>
+  <div id="activityMap"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function() {
+    // Navbar Active Link Highlighting
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('#nav-links .nav-link');
+    navLinks.forEach(link => {
+      if (currentPath.startsWith(link.getAttribute('href')) && link.getAttribute('href') !== '/') {
+        link.classList.remove('text-white-50');
+        link.classList.add('active', 'text-white', 'fw-bold');
+      }
+    });
+
+    // Initialize the map
+    const map = L.map('activityMap').setView([51.2199, 4.4150], 10);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    const getIcon = (color) => {
+      return new L.Icon({
+        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+      });
+    };
+
+    const icons = {
+      'Entertainment': getIcon('violet'),
+      'Sports & Outdoors': getIcon('green'),
+      'Academic': getIcon('blue'),
+      'default': getIcon('grey')
+    };
+
+    // Create a Custom Legend Control
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'info legend p-3 rounded-3 shadow border');
+      div.style.backgroundColor = 'rgba(30, 41, 59, 0.9)';
+      div.innerHTML = `
+            <h6 class="fw-bold text-white mb-3 border-bottom border-secondary pb-2">Event Types</h6>
+            <div class="mb-2 text-white d-flex align-items-center"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png" style="height:20px;" class="me-2"> Entertainment</div>
+            <div class="mb-2 text-white d-flex align-items-center"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png" style="height:20px;" class="me-2"> Sports & Outdoors</div>
+            <div class="mb-2 text-white d-flex align-items-center"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png" style="height:20px;" class="me-2"> Academic</div>
+            <div class="text-white d-flex align-items-center"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png" style="height:20px;" class="me-2"> Other</div>
+        `;
+      return div;
+    };
+    legend.addTo(map);
+
+    fetch('/api/activities')
+            .then(response => response.json())
+            .then(activities => {
+              activities.forEach(activity => {
+                if (activity.locationLatitude && activity.locationLongitude) {
+                  const markerIcon = icons[activity.type] || icons['default'];
+                  const marker = L.marker([activity.locationLatitude, activity.locationLongitude], {icon: markerIcon}).addTo(map);
+
+                  const popupContent = `
+                     <div class="p-1 text-center" style="min-width: 160px;">
+                         <span class="badge bg-light text-dark border mb-2 px-2 py-1 d-inline-block shadow-sm">${activity.type || 'Other'}</span>
+                         <h6 class="text-white fw-bold mb-1" style="font-size: 0.95rem;">${activity.title}</h6>
+                         <div class="text-white-50 small mb-3" style="font-size: 0.8rem; line-height: 1.2;">
+                             <i class="bi bi-geo-alt-fill text-primary me-1"></i>${activity.locationAddress}
+                         </div>
+                         <a href="/activities/${activity.id}"
+                            class="btn btn-primary btn-sm rounded-pill w-100 fw-bold shadow-sm"
+                            style="display: block !important; color: white !important; background-color: #0ea5e9 !important; border: none !important; text-decoration: none !important; padding: 8px 0 !important;">
+                            View Event
+                         </a>
+                     </div>
+                 `;
+
+                  marker.bindPopup(popupContent);
+                }
+              });
+            });
+
+    // --- LIVE LOCATION RADAR ---
+    const liveLocationBtn = document.getElementById('liveLocationBtn');
+    const radarCsrfToken = document.querySelector('meta[name="_csrf"]')?.content || /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+    const radarCsrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+
+    let locationWatchId = null;
+    let selfMarker = null;
+    let selfAccuracyCircle = null;
+    let hasCenteredMap = false;
+    let radarActive = false;
+
+    liveLocationBtn.addEventListener('click', function() {
+      const willEnable = !radarActive;
+      fetch('/api/location/toggle', {
+        method: 'POST',
+        headers: { [radarCsrfHeader]: radarCsrfToken }
+      })
+              .then(res => res.json().catch(() => willEnable))
+              .then(serverState => {
+                const isSharing = (typeof serverState === 'boolean') ? serverState : willEnable;
+                applyRadarState(isSharing);
+              })
+              .catch(err => {
+                console.error("Toggle failed, applying locally:", err);
+                applyRadarState(willEnable);
+              });
+    });
+
+    function applyRadarState(isSharing) {
+      radarActive = isSharing;
+      if (isSharing) {
+        liveLocationBtn.classList.replace('btn-outline-info', 'btn-info');
+        liveLocationBtn.classList.add('text-white');
+        liveLocationBtn.innerHTML = '<i class="bi bi-broadcast text-white me-2"></i> Location Active';
+        startBroadcasting();
+      } else {
+        liveLocationBtn.classList.replace('btn-info', 'btn-outline-info');
+        liveLocationBtn.classList.remove('text-white');
+        liveLocationBtn.innerHTML = '<i class="bi bi-geo-alt me-2"></i> Enable Location';
+        stopBroadcasting();
+      }
+    }
+
+    function startBroadcasting() {
+      if (!("geolocation" in navigator)) {
+        console.error("Geolocation not supported");
+        return;
+      }
+      locationWatchId = navigator.geolocation.watchPosition(position => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy || 0;
+        const selfLatLng = [lat, lng];
+
+        if (!hasCenteredMap) {
+          map.flyTo(selfLatLng, 14, { duration: 1.5 });
+          hasCenteredMap = true;
+        }
+
+        if (selfMarker) {
+          selfMarker.setLatLng(selfLatLng);
+          if (selfAccuracyCircle) selfAccuracyCircle.setLatLng(selfLatLng).setRadius(accuracy);
+        } else {
+          const selfIcon = L.divIcon({
+            className: 'self-radar-marker border-0 bg-transparent',
+            html: `<div style="position: relative; width: 22px; height: 22px;">
+                     <span style="position:absolute; inset:0; border-radius:50%; background:#0ea5e9; opacity:0.35; animation: radarPulse 1.6s ease-out infinite;"></span>
+                     <span style="position:absolute; inset:4px; border-radius:50%; background:#0ea5e9; border:3px solid #fff; box-shadow:0 0 8px rgba(14,165,233,0.9);"></span>
+                   </div>
+                   <style>@keyframes radarPulse {0%{transform:scale(0.6);opacity:0.6;}100%{transform:scale(2.4);opacity:0;}}</style>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+          selfMarker = L.marker(selfLatLng, { icon: selfIcon, zIndexOffset: 1000 })
+                        .addTo(map)
+                        .bindPopup("<b>You are here</b>");
+          selfAccuracyCircle = L.circle(selfLatLng, {
+            radius: accuracy,
+            color: '#0ea5e9',
+            weight: 1,
+            fillColor: '#0ea5e9',
+            fillOpacity: 0.1
+          }).addTo(map);
+        }
+
+        fetch('/api/location/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', [radarCsrfHeader]: radarCsrfToken },
+          body: JSON.stringify({ latitude: lat, longitude: lng })
+        }).catch(err => console.error("Location update failed:", err));
+      }, err => {
+        console.error("GPS Error:", err.code, err.message);
+        if (err.code === 1 /* PERMISSION_DENIED */) {
+          alert("Could not get your location! Please check your Mac/Browser privacy settings.");
+          applyRadarState(false);
+        }
+      }, { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 });
+    }
+
+    function stopBroadcasting() {
+      if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+      }
+      if (selfMarker) { map.removeLayer(selfMarker); selfMarker = null; }
+      if (selfAccuracyCircle) { map.removeLayer(selfAccuracyCircle); selfAccuracyCircle = null; }
+      hasCenteredMap = false;
+    }
+
+    // --- Global Notification System ---
+    fetch('/api/notifications')
+            .then(response => response.json())
+            .then(data => {
+              const bellIcon = document.getElementById('notification-bell');
+              const badge = document.getElementById('notification-badge');
+              const list = document.getElementById('notification-list');
+
+              const unreadCount = data.filter(note => !note.read).length;
+
+              if (data.length > 0) {
+                list.innerHTML = '';
+                if (unreadCount > 0) {
+                  badge.style.display = 'inline-block';
+                  badge.innerText = unreadCount;
+                }
+
+                const recentNotifications = data.slice(0, 5);
+                recentNotifications.forEach(note => {
+                  const date = new Date(note.createdAt).toLocaleDateString();
+                  let link = '#';
+                  if ((note.notificationType === 'ACTIVITY_UPDATE' || note.notificationType === 'ACTIVITY_INVITE' || note.notificationType === 'BUDDY_MATCH') && note.referenceId) link = '/activities/' + note.referenceId;
+                  else if (note.notificationType === 'GROUP_JOIN' && note.referenceId) link = '/travel-groups/' + note.referenceId;
+                  else if (note.notificationType === 'FRIEND_REQUEST') link = '/users';
+
+                  const bgClass = note.read ? '' : 'bg-primary bg-opacity-10';
+                  list.innerHTML += `
+                        <li>
+                            <a class="dropdown-item py-3 border-bottom border-secondary border-opacity-25 ${bgClass}" href="${link}">
+                                <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                                    <i class="bi bi-info-circle me-1"></i> ${note.title}
+                                </div>
+                                <div class="text-muted small text-wrap" style="width: 250px; line-height: 1.4;">${note.description}</div>
+                                <div class="text-muted" style="font-size: 0.75rem; margin-top: 6px;">${date}</div>
+                            </a>
+                        </li>`;
+                });
+
+                if (data.length > 5) {
+                  list.innerHTML += `<li><a class="dropdown-item text-center text-primary py-2 small fw-bold" href="#">View all ${data.length} notifications</a></li>`;
+                }
+              }
+
+              const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+              const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+
+              if (bellIcon) {
+                bellIcon.addEventListener('click', () => {
+                  if (unreadCount > 0) {
+                    fetch('/api/notifications/mark-read', {
+                      method: 'POST',
+                      headers: { [csrfHeader]: csrfToken }
+                    });
+                    badge.style.display = 'none';
+                    document.querySelectorAll('.bg-opacity-10').forEach(el => el.classList.remove('bg-primary', 'bg-opacity-10'));
+                  }
+                });
+              }
+            })
+            .catch(error => console.error("Error fetching notifications:", error));
+  });
+</script>
+</body>
+</html>

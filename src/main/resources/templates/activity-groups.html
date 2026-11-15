@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Groups for Activity - KdG Travel</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    body { background-color: var(--bs-body-bg); }
+    .nav-link { font-weight: 500; transition: all 0.2s ease-in-out; padding: 0.5rem 1rem !important; }
+    .nav-link.active { color: #20c997 !important; background-color: rgba(32, 201, 151, 0.15); border-radius: 8px; }
+    .card { border-radius: 12px; transition: transform 0.2s; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+    /* Team's new features integrated into Dark Theme */
+    .friend-insight-card {
+      background: linear-gradient(135deg, rgba(25, 135, 84, 0.15), rgba(13, 110, 253, 0.1));
+      border: 1px solid rgba(25, 135, 84, 0.2);
+    }
+    .friend-avatar-stack-avatar {
+      object-fit: cover;
+      margin-left: -14px;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+    .friend-avatar-stack-avatar:first-child { margin-left: 0; }
+    .friend-attendee-pill {
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .location-filter-input { background-color: var(--bs-dark); color: var(--bs-light); }
+  </style>
+  <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top py-3">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/activities">
+      <img th:src="@{/images/logo.png}" alt="Logo" width="40" height="40" class="rounded-3 shadow-sm" style="object-fit: cover;">
+      <span class="text-white tracking-wide">KDG Travel</span>
+    </a>
+    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3 fw-medium" id="nav-links">
+        <li class="nav-item"><a class="nav-link text-white-50" href="/activities" id="nav-activities"><i class="bi bi-compass me-1"></i> Explore</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/map" id="nav-map"><i class="bi bi-map me-1"></i> Map</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/travel-groups" id="nav-travel-groups"><i class="bi bi-people me-1"></i> Groups</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/users" id="nav-users"><i class="bi bi-search me-1"></i> Users</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="/analytics" id="nav-analytics"><i class="bi bi-bar-chart me-1"></i> Analytics</a></li>
+        <li class="nav-item" th:if="${canAccessAdminDashboard}"><a class="nav-link text-white-50" href="/admin" id="nav-admin"><i class="bi bi-shield-lock me-1"></i> Admin</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-4">
+        <div class="dropdown">
+          <a href="#" class="text-white position-relative text-decoration-none fs-5 hover-scale" id="notification-bell" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">0</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 rounded-4" id="notification-list" style="max-height: 400px; overflow-y: auto; min-width: 320px; background-color: var(--surface-dark);">
+            <li><span class="dropdown-item text-muted small py-3 text-center bg-transparent">No new notifications</span></li>
+          </ul>
+        </div>
+        <a href="/profile" class="btn btn-primary rounded-pill px-4 fw-bold text-truncate" style="max-width: 150px;" th:text="${userName != null ? userName : 'My Profile'}">My Profile</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4 animate-fade-in-up">
+  <div class="d-flex justify-content-between flex-wrap align-items-center pb-2 mb-4 border-bottom border-secondary border-opacity-25 gap-3">
+    <div>
+      <h2 class="fw-bold mb-1 text-white">Groups for <span class="text-primary" th:text="${activityTitle}">Event</span></h2>
+      <p class="text-muted mb-0">Find a travel group to join for this event!</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <a href="/activities" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-2"></i>Back to Events
+      </a>
+      <a th:href="@{/travel-groups/create(activityId=${activityId})}" class="btn btn-primary rounded-pill px-4">
+        <i class="bi bi-plus-circle me-2"></i>Create Group
+      </a>
+    </div>
+  </div>
+
+  <section th:if="${friendAttendanceSummary.hasAttendingFriends()}" class="card friend-insight-card shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-4">
+        <div class="flex-grow-1">
+          <span class="badge bg-secondary bg-opacity-25 border border-secondary text-success mb-3 px-3 py-2">Friends attending</span>
+          <h4 class="fw-bold mb-2 text-white">
+            <span th:text="${friendAttendanceSummary.attendeeCount}">0</span>
+            <span th:text="${friendAttendanceSummary.attendeeCount == 1 ? 'friend is already going to this event.' : 'friends are already going to this event.'}">friends are already going to this event.</span>
+          </h4>
+          <p class="text-muted mb-0">Check for a matching travel group or create one so you can coordinate the trip together.</p>
+        </div>
+        <div class="friend-attendee-pill d-inline-flex align-items-center rounded-pill border">
+          <div class="d-flex align-items-center">
+            <img th:each="friend : ${friendAttendanceSummary.previewAttendees}"
+                 class="friend-avatar-stack-avatar rounded-circle d-block border border-3 border-dark"
+                 width="48"
+                 height="48"
+                 th:src="${friend.profilePictureUrl != null and !#strings.isEmpty(friend.profilePictureUrl) ? friend.profilePictureUrl : 'https://ui-avatars.com/api/?name=' + friend.username + '&background=2a9d8f&color=fff'}"
+                 th:alt="${friend.username}">
+          </div>
+          <div class="small text-muted">
+            <span th:each="friend, friendStat : ${friendAttendanceSummary.previewAttendees}">
+              <span class="fw-semibold text-white" th:text="${friend.username}">Friend name</span><span th:if="${!friendStat.last}">, </span>
+            </span>
+            <span th:if="${friendAttendanceSummary.remainingAttendeeCount > 0}" class="text-white">
+              +<span th:text="${friendAttendanceSummary.remainingAttendeeCount}">0</span> more
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-3 p-md-4">
+      <form method="get" th:action="@{/travel-groups/activity/{id}(id=${activityId})}" class="row g-3 align-items-end travel-group-filter-form">
+        <input type="hidden" name="sort" th:value="${sort}">
+        <div class="col-12 col-md-6 col-xl-4">
+          <label for="activityKeywordFilter" class="form-label fw-semibold text-white">Keyword</label>
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0 text-muted border-secondary"><i class="bi bi-search"></i></span>
+            <input id="activityKeywordFilter" name="keyword" type="text" class="form-control bg-transparent text-white border-start-0 shadow-none border-secondary" placeholder="Title, description, or event" th:value="${filter.keyword}">
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+          <label for="activityModeFilter" class="form-label fw-semibold text-white">Transport</label>
+          <select id="activityModeFilter" name="transportationMode" class="form-select bg-dark border-secondary text-white shadow-none">
+            <option value="" class="text-muted">Any mode</option>
+            <option th:each="mode : ${allTransportModes}" th:value="${mode}" th:selected="${filter.transportationMode != null and filter.transportationMode == mode}" th:text="${mode}">BIKE</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+          <label for="activityGroupSizeFilter" class="form-label fw-semibold text-white">Group size</label>
+          <input id="activityGroupSizeFilter" name="groupSize" type="number" min="1" class="form-control bg-transparent border-secondary text-white shadow-none" th:value="${filter.groupSize}">
+        </div>
+        <div class="col-12 col-xl-5">
+          <label for="activityPreferredStartFilter" class="form-label fw-semibold text-white">Start near</label>
+          <div class="row g-2">
+            <div class="col-12 col-md position-relative">
+              <input id="activityPreferredStartFilter" name="preferredStartAddress" type="text" class="form-control bg-transparent border-secondary text-white shadow-none location-filter-input" placeholder="Address or place" autocomplete="off" th:value="${filter.preferredStartAddress}">
+                <ul id="activityPreferredStartSuggestions" class="list-group position-absolute w-100 dropdown-shadow rounded-3 overflow-hidden mt-1" style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;"></ul>
+              <input type="hidden" id="activityPreferredStartLatitude" name="preferredStartLatitude" th:value="${filter.preferredStartLatitude}">
+              <input type="hidden" id="activityPreferredStartLongitude" name="preferredStartLongitude" th:value="${filter.preferredStartLongitude}">
+            </div>
+            <div class="col-12 col-md-auto">
+              <div class="input-group proximity-input-group">
+                <span class="input-group-text bg-transparent border-secondary text-muted">Within</span>
+                <input id="activityStartProximityMeters" name="startProximityMeters" type="number" min="0" step="1" class="form-control bg-transparent border-secondary text-white shadow-none no-spinner" style="width: 6.5rem;" th:value="${filter.startProximityMeters}">
+                <span class="input-group-text bg-transparent border-secondary text-muted">m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-5">
+          <label for="activityPreferredEndFilter" class="form-label fw-semibold text-white">Destination near</label>
+          <div class="row g-2">
+            <div class="col-12 col-md position-relative">
+              <input id="activityPreferredEndFilter" name="preferredEndAddress" type="text" class="form-control bg-transparent border-secondary text-white shadow-none location-filter-input" placeholder="Address or place" autocomplete="off" th:value="${filter.preferredEndAddress}">
+                <ul id="activityPreferredEndSuggestions" class="list-group position-absolute w-100 dropdown-shadow rounded-3 overflow-hidden mt-1" style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;"></ul>
+              <input type="hidden" id="activityPreferredEndLatitude" name="preferredEndLatitude" th:value="${filter.preferredEndLatitude}">
+              <input type="hidden" id="activityPreferredEndLongitude" name="preferredEndLongitude" th:value="${filter.preferredEndLongitude}">
+            </div>
+            <div class="col-12 col-md-auto">
+              <div class="input-group proximity-input-group">
+                <span class="input-group-text bg-transparent border-secondary text-muted">Within</span>
+                <input id="activityEndProximityMeters" name="endProximityMeters" type="number" min="0" step="1" class="form-control bg-transparent border-secondary text-white shadow-none no-spinner" style="width: 6.5rem;" th:value="${filter.endProximityMeters}">
+                <span class="input-group-text bg-transparent border-secondary text-muted">m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label for="activityMeetupStartFilter" class="form-label fw-semibold text-white">Meetup from</label>
+          <input id="activityMeetupStartFilter" name="meetupStart" type="datetime-local" class="form-control bg-transparent border-secondary text-white shadow-none" th:value="${filter.meetupStart}">
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label for="activityMeetupEndFilter" class="form-label fw-semibold text-white">Meetup until</label>
+          <input id="activityMeetupEndFilter" name="meetupEnd" type="datetime-local" class="form-control bg-transparent border-secondary text-white shadow-none" th:value="${filter.meetupEnd}">
+        </div>
+        <div class="col-12 mt-3 mb-2">
+          <div class="form-check">
+            <input class="form-check-input border-secondary" type="checkbox" id="activityFriendsOnlyFilter" name="friendsOnly" value="true" th:checked="${filter.friendsOnly}">
+            <label class="form-check-label fw-semibold text-white" for="activityFriendsOnlyFilter">Groups with friends only</label>
+          </div>
+        </div>
+        <div class="col-12 mt-2">
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Filter</button>
+            <a th:href="@{/travel-groups/activity/{id}(id=${activityId})}" class="btn btn-outline-secondary rounded-pill px-4">Clear</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="d-flex justify-content-between flex-wrap align-items-center gap-3 mb-3">
+    <p class="text-muted mb-0">
+      <span class="text-white fw-bold" th:text="${#lists.size(travelGroups)}">0</span>
+      <span th:text="${#lists.size(travelGroups) == 1 ? 'group found' : 'groups found'}">groups found</span>
+    </p>
+    <form method="get" th:action="@{/travel-groups/activity/{id}(id=${activityId})}" class="d-flex align-items-center gap-2">
+      <input type="hidden" name="keyword" th:value="${filter.keyword}">
+      <input type="hidden" name="transportationMode" th:value="${filter.transportationMode}">
+      <input type="hidden" name="groupSize" th:value="${filter.groupSize}">
+      <input type="hidden" name="preferredStartAddress" th:value="${filter.preferredStartAddress}">
+      <input type="hidden" name="preferredStartLatitude" th:value="${filter.preferredStartLatitude}">
+      <input type="hidden" name="preferredStartLongitude" th:value="${filter.preferredStartLongitude}">
+      <input type="hidden" name="startProximityMeters" th:value="${filter.startProximityMeters}">
+      <input type="hidden" name="preferredEndAddress" th:value="${filter.preferredEndAddress}">
+      <input type="hidden" name="preferredEndLatitude" th:value="${filter.preferredEndLatitude}">
+      <input type="hidden" name="preferredEndLongitude" th:value="${filter.preferredEndLongitude}">
+      <input type="hidden" name="endProximityMeters" th:value="${filter.endProximityMeters}">
+      <input type="hidden" name="meetupStart" th:value="${filter.meetupStart}">
+      <input type="hidden" name="meetupEnd" th:value="${filter.meetupEnd}">
+      <input type="hidden" name="friendsOnly" th:value="${filter.friendsOnly}">
+      <label for="activitySort" class="form-label fw-semibold mb-0 text-nowrap text-white">Sort</label>
+      <select id="activitySort" name="sort" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="this.form.submit()">
+        <option value="dateAsc" th:selected="${sort == 'dateAsc'}">Date (Soonest first)</option>
+        <option value="dateDesc" th:selected="${sort == 'dateDesc'}">Date (Latest first)</option>
+        <option value="nameAsc" th:selected="${sort == 'nameAsc'}">Name (A Z)</option>
+        <option value="nameDesc" th:selected="${sort == 'nameDesc'}">Name (Z A)</option>
+      </select>
+    </form>
+  </div>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" th:if="${not #lists.isEmpty(travelGroups)}">
+    <div class="col" th:each="group : ${travelGroups}">
+      <div class="card h-100 bg-dark border-secondary border-opacity-25">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start mb-3 gap-3">
+            <div>
+              <h5 class="card-title fw-bold mb-1 text-white" th:text="${group.title}">Group Title</h5>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary" th:text="${group.transportationMode}">BIKE</span>
+                <span th:if="${group.transportationMode.name() == 'CARPOOL'}" class="badge" th:classappend="${group.contributionRequired} ? ' text-bg-warning' : ' text-bg-success'" th:text="${group.contributionRequired} ? 'Contribution required' : 'Free ride'"></span>
+              </div>
+            </div>
+            <span class="badge" th:classappend="${group.currentMemberCount < group.maxSize} ? ' text-bg-success' : ' text-bg-danger'" th:text="${group.currentMemberCount < group.maxSize ? 'Open' : 'Full'}">Status</span>
+          </div>
+          <p class="card-text text-muted small mb-3" th:text="${group.description != null ? group.description : 'No description provided.'}"></p>
+          <div class="mb-3">
+            <p class="mb-2 small text-white">
+              <i class="bi bi-clock me-2 text-success"></i>
+              <span th:if="${group.meetupTime != null}" th:text="${#temporals.format(group.meetupTime, 'dd MMM yyyy HH:mm')}">01 Jan 2026 12:00</span>
+              <span th:if="${group.meetupTime == null}" class="text-muted">No meetup time set</span>
+            </p>
+            <p class="mb-2 small text-white"><i class="bi bi-people me-2 text-success"></i>Members: <span th:text="${group.currentMemberCount}">1</span> / <span th:text="${group.maxSize}">5</span></p>
+            <p class="mb-2 small text-white"><i class="bi bi-signpost-2 me-2 text-success"></i>Distance: <span th:text="${group.distanceKm != null ? group.distanceKm : '-'}">3.5</span> km</p>
+          </div>
+          <div class="mt-auto">
+            <a th:href="@{/travel-groups/{id}(id=${group.id})}" class="btn btn-outline-light btn-sm rounded-pill w-100">
+              View Group Details <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div th:if="${#lists.isEmpty(travelGroups)}" class="text-center text-muted py-5 mt-4 bg-dark border border-secondary border-opacity-25 rounded-4 shadow-sm">
+    <i class="bi bi-compass text-secondary" style="font-size: 3rem;"></i>
+    <h4 class="mt-3 fw-bold text-white">No groups found</h4>
+    <p class="mb-4">Be the first to create a travel group for this event!</p>
+    <a th:href="@{/travel-groups/create(activityId=${activityId})}" class="btn btn-primary rounded-pill px-4">
+      <i class="bi bi-plus-circle me-2"></i>Create Travel Group
+    </a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function() {
+    // --- 1. Navbar Active Link Highlighting ---
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('#nav-links .nav-link');
+    navLinks.forEach(link => {
+      if (link.getAttribute('href') === currentPath) {
+        link.classList.remove('text-white-50');
+        link.classList.add('active', 'text-white', 'fw-bold');
+      }
+    });
+
+    // --- 2. Notification Fetching System ---
+    // --- Global Notification System ---
+    fetch('/api/notifications')
+            .then(response => response.json())
+            .then(data => {
+              const bellIcon = document.getElementById('notification-bell');
+              const badge = document.getElementById('notification-badge');
+              const list = document.getElementById('notification-list');
+
+              const unreadCount = data.filter(note => !note.read).length;
+
+              if (data.length > 0) {
+                list.innerHTML = '';
+                if (unreadCount > 0) {
+                  badge.style.display = 'inline-block';
+                  badge.innerText = unreadCount;
+                }
+
+                const recentNotifications = data.slice(0, 5);
+                recentNotifications.forEach(note => {
+                  const date = new Date(note.createdAt).toLocaleDateString();
+                  let link = '#';
+                  if ((note.notificationType === 'ACTIVITY_UPDATE' || note.notificationType === 'ACTIVITY_INVITE' || note.notificationType === 'BUDDY_MATCH') && note.referenceId) link = '/activities/' + note.referenceId;
+                  else if (note.notificationType === 'GROUP_JOIN' && note.referenceId) link = '/travel-groups/' + note.referenceId;
+                  else if (note.notificationType === 'FRIEND_REQUEST') link = '/users';
+
+                  const bgClass = note.read ? '' : 'bg-primary bg-opacity-10';
+                  list.innerHTML += `
+                        <li>
+                            <a class="dropdown-item py-3 border-bottom border-secondary border-opacity-25 ${bgClass}" href="${link}">
+                                <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                                    <i class="bi bi-info-circle me-1"></i> ${note.title}
+                                </div>
+                                <div class="text-muted small text-wrap" style="width: 250px; line-height: 1.4;">${note.description}</div>
+                                <div class="text-muted" style="font-size: 0.75rem; margin-top: 6px;">${date}</div>
+                            </a>
+                        </li>`;
+                });
+
+                if (data.length > 5) {
+                  list.innerHTML += `<li><a class="dropdown-item text-center text-primary py-2 small fw-bold" href="#">View all ${data.length} notifications</a></li>`;
+                }
+              }
+
+              const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+              const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+
+              if (bellIcon) {
+                bellIcon.addEventListener('click', () => {
+                  if (unreadCount > 0) {
+                    fetch('/api/notifications/mark-read', {
+                      method: 'POST',
+                      headers: { [csrfHeader]: csrfToken }
+                    });
+                    badge.style.display = 'none';
+                    document.querySelectorAll('.bg-opacity-10').forEach(el => el.classList.remove('bg-primary', 'bg-opacity-10'));
+                  }
+                });
+              }
+            })
+            .catch(error => console.error("Error fetching notifications:", error));
+  });
+
+  // --- 3. Photon Place API logic for Search Bars ---
+  function formatPhotonPlace(place) {
+    let displayName = place.name || place.street || "";
+    if (place.housenumber) displayName += " " + place.housenumber;
+    if (place.city || place.state) displayName += ", " + (place.city || place.state);
+    if (!displayName.includes("Belgium") && place.country) displayName += ", " + place.country;
+    return displayName || "Selected location";
+  }
+
+  function setupLocationFilter(inputId, listId, latitudeId, longitudeId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    const latitudeInput = document.getElementById(latitudeId);
+    const longitudeInput = document.getElementById(longitudeId);
+
+    if (!input || !list || !latitudeInput || !longitudeInput) return;
+
+    let debounceTimer;
+
+    input.addEventListener("input", function() {
+      clearTimeout(debounceTimer);
+      latitudeInput.value = "";
+      longitudeInput.value = "";
+
+      const query = this.value.trim();
+
+      if (query.length < 2) {
+        list.style.display = "none";
+        return;
+      }
+
+      debounceTimer = setTimeout(() => {
+        fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=51.2194&lon=4.4025&limit=5`)
+                .then(response => response.json())
+                .then(data => {
+                  list.innerHTML = "";
+                  if (!data.features || data.features.length === 0) {
+                    list.style.display = "none";
+                    return;
+                  }
+
+                  list.style.display = "block";
+                  data.features.forEach(feature => {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item custom-suggestion-item py-2 px-3";
+                    li.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-geo-alt-fill text-success fs-5 me-3"></i><span class="fw-medium">${formatPhotonPlace(feature.properties)}</span></div>`;
+                    li.addEventListener("click", () => {
+                      input.value = formatPhotonPlace(feature.properties);
+                      latitudeInput.value = feature.geometry.coordinates[1];
+                      longitudeInput.value = feature.geometry.coordinates[0];
+                      list.style.display = "none";
+                    });
+                    list.appendChild(li);
+                  });
+                });
+      }, 300);
+    });
+
+    document.addEventListener("click", function(event) {
+      if (event.target !== input && event.target !== list) list.style.display = "none";
+    });
+  }
+
+  setupLocationFilter("activityPreferredStartFilter", "activityPreferredStartSuggestions", "activityPreferredStartLatitude", "activityPreferredStartLongitude");
+  setupLocationFilter("activityPreferredEndFilter", "activityPreferredEndSuggestions", "activityPreferredEndLatitude", "activityPreferredEndLongitude");
+</script>
+</body>
+</html>
