@@ -33,15 +33,15 @@ A layered Spring Boot application. Thymeleaf page controllers and REST controlle
 
 ```mermaid
 flowchart LR
-    B[Browser<br/>Thymeleaf + JS + Leaflet] -->|pages| WC[Web controllers]
-    B -->|JSON / WebSocket| API[REST + WebSocket]
-    WC --> S[Services]
+    B["Browser<br/>Thymeleaf + JS + Leaflet"] -->|"pages"| WC["Web controllers"]
+    B -->|"JSON / WebSocket"| API["REST + WebSocket"]
+    WC --> S["Services"]
     API --> S
-    S --> R[JPA repositories] --> DB[(PostgreSQL)]
-    S --> T[Transit planning<br/>GTFS cache]
-    T --> DL[De Lijn API]
-    S --> O[OSRM routing]
-    B -->|OIDC| G[Google sign-in]
+    S --> R["JPA repositories"] --> DB[("PostgreSQL")]
+    S --> T["Transit planning<br/>GTFS cache"]
+    T --> DL["De Lijn API"]
+    S --> O["OSRM routing"]
+    B -->|"OIDC"| G["Google sign-in"]
 ```
 
 **Deployment:** a GitLab CI/CD pipeline builds and tests the app, then deploys it to a Google Compute Engine VM. Two Docker containers run behind Nginx in a blue-green setup, so a new version only receives traffic after it passes a health check. The database is Cloud SQL. See [docs/deployment.md](docs/deployment.md) and the scripts in `scripts/`.
