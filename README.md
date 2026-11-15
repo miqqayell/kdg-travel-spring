@@ -1,119 +1,108 @@
-# KdG Travel — Spring Backend (Integration 4)
+# KdG Travel: travel together to events
 
-A web application that helps KdG students travel together to events. Users can
-discover activities, form travel groups, share live locations on the map,
-invite friends, and get notified of buddy matches based on overlapping plans.
+A Spring Boot web application that helps students travel together to events. Users discover activities, form travel groups, plan a shared route (walking, cycling or public transport), share their live location with the group, and get notified when friends join the same plans.
 
-## Team
-
-* Mikayel Ghalumyan (team lead)
-* Teammate 1
-* Teammate 2
-* Teammate 3
-* Teammate 4
+![KdG Travel home page](docs/screenshot-home.jpg)
 
 ## Features
 
-* **Activities & travel groups** — create, discover and join events; form
-  travel groups per activity with a chosen transport mode and route.
-* **Public-transport routing** — suggested De Lijn routes (GTFS static +
-  realtime), saved per group with route snapshot for later display.
-* **Live location radar** — group members opt in to share GPS; everyone on the
-  group page sees one another's avatars on the route map in real time.
-* **Friends & social graph** — friend requests, accept/decline, block, and a
-  per-user "frequent travel buddies" shortlist on the profile page.
-* **Suggestions & invites** — on an activity, see friends you could invite to
-  travel together; one-click sends them a notification linking to the event.
-* **Buddy-match notifications** — when a friend joins an upcoming activity you
-  are already on (or vice versa), both sides get notified automatically.
-* **Notifications** — bell dropdown polled from `/api/notifications` with
-  context-aware deep links (activity, group, profile).
-* **Admin dashboard** — verification, reports, user moderation, analytics.
+- **Activities and travel groups:** create, discover and join events, then form travel groups per activity with a transport mode and route.
+- **Public-transport routing:** suggested De Lijn routes from GTFS static data with realtime updates, saved per group as a route snapshot. See [docs/route-suggestion-system.md](docs/route-suggestion-system.md).
+- **Walking and cycling routes** through OSRM, shown on a Leaflet map.
+- **Live location radar:** group members opt in to share GPS, and everyone on the group page sees each other on the route map, updated by polling a REST endpoint.
+- **Group chat** on the travel group page over WebSocket (STOMP + SockJS).
+- **Friends and social graph:** friend requests, accept/decline, block, and a "frequent travel buddies" list on the profile page.
+- **Suggestions and invites:** invite friends to an activity with one click, and get buddy-match notifications when a friend joins an activity you're on.
+- **Notifications:** bell dropdown with deep links to activities, groups and profiles.
+- **Admin dashboard:** verification, reports, user moderation and analytics, with role-based permissions (student, moderator, admin, super admin).
+- **Sign-in with Google (OIDC).**
 
 ## Tech stack
 
-* **Java 21**, **Spring Boot 4** (Web MVC, Data JPA, Security, OAuth2 client,
-  WebSocket)
-* **Thymeleaf** templates + Bootstrap 5
-* **PostgreSQL** (via Docker for dev)
-* **Leaflet** for maps, **OSRM** for pedestrian/bike routing,
-  **OneBusAway GTFS** for transit data, **De Lijn API** for realtime
+| Area | Technologies |
+|---|---|
+| Backend | Java 21, Spring Boot 4 (Web MVC, Data JPA, Security, OAuth2 client, WebSocket), Lombok |
+| Frontend | Thymeleaf, Bootstrap 5, JavaScript, Leaflet |
+| Data | PostgreSQL, Hibernate |
+| Integrations | De Lijn API (GTFS static and realtime), OneBusAway GTFS, OSRM |
+| DevOps | Gradle, Docker, GitLab CI/CD, Google Cloud (Compute Engine, Cloud SQL), Nginx, Let's Encrypt |
 
-## Prerequisites
+## Architecture
 
-* Java 21
-* Docker (for the dev PostgreSQL container)
-* A Google OAuth client (set `client-id` and `client-secret` for the `google`
-  registration in `application-{dev,prod}.yaml` — sign-in is OIDC-only)
+A layered Spring Boot application. Thymeleaf page controllers and REST controllers (used by the JavaScript on the pages) call services. Services hold the business logic and use Spring Data JPA repositories. Transit routing is a separate service package that loads and caches the De Lijn GTFS feed, plans routes over it, and adds realtime departures.
 
-## Build
+```mermaid
+flowchart LR
+    B[Browser<br/>Thymeleaf + JS + Leaflet] -->|pages| WC[Web controllers]
+    B -->|JSON / WebSocket| API[REST + WebSocket]
+    WC --> S[Services]
+    API --> S
+    S --> R[JPA repositories] --> DB[(PostgreSQL)]
+    S --> T[Transit planning<br/>GTFS cache]
+    T --> DL[De Lijn API]
+    S --> O[OSRM routing]
+    B -->|OIDC| G[Google sign-in]
+```
+
+**Deployment:** a GitLab CI/CD pipeline builds and tests the app, then deploys it to a Google Compute Engine VM. Two Docker containers run behind Nginx in a blue-green setup, so a new version only receives traffic after it passes a health check. The database is Cloud SQL. See [docs/deployment.md](docs/deployment.md) and the scripts in `scripts/`.
+
+## Getting started
+
+Prerequisites: JDK 21 and Docker.
 
 ```bash
-./gradlew clean build
+git clone https://github.com/miqqayell/kdg-travel-spring.git
+cd kdg-travel-spring
+
+docker compose up -d          # PostgreSQL on localhost:5435
+./gradlew bootRun             # dev profile, http://localhost:8080
+./gradlew build               # compile and run the tests (needs the database running)
 ```
 
-## Run — development profile
+In the dev profile, `DataSeeder` adds a demo user and a few activities on first start.
 
-1. Start the database:
-   ```bash
-   docker compose up -d
-   ```
-2. Run the application:
-   ```bash
-   ./gradlew bootRun --args='--spring.profiles.active=dev'
-   ```
+Configuration comes from environment variables (see `.env.example`):
 
-App: <http://localhost:8080> · Dev database:
+| Variable | Needed for |
+|---|---|
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Database. The dev profile defaults to the compose database. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Signing in. Create an OAuth client in Google Cloud Console with redirect URI `http://localhost:8080/login/oauth2/code/google`. |
+| `DELIJN_API_KEY`, `DELIJN_GTFS_STATIC_KEY`, `DELIJN_GTFS_REALTIME_KEY` | Public transport suggestions (free keys from the De Lijn open data portal). |
 
-| | |
-|-|-|
-| Host | `localhost` |
-| Port | `5435` |
-| Database | `integration4` |
-| Username / password | `spring` / `spring` |
-| JDBC URL | `jdbc:postgresql://localhost:5435/integration4` |
+Without Google credentials the app starts and the public pages work, but you can't sign in.
 
-On first boot, `DataSeeder` populates a demo user and a couple of activities.
+## My role
 
-## Run — production profile
+Team lead in a team of five. I was responsible for planning, coordinating the team and setting the product direction.
 
-```bash
-./gradlew bootRun --args='--spring.profiles.active=prod'
-```
+## What I learned
 
-## Tests
+- **Java and Spring Boot:** building a layered application with controllers, services, repositories, Spring Security and OAuth2/OIDC login.
+- **SQL and JPA:** modelling entities and relations, and writing repository queries on PostgreSQL.
+- **APIs and real-time features:** integrating external APIs (De Lijn, GTFS, OSRM) and building a group chat over WebSocket.
+- **DevOps:** CI/CD pipelines, Docker, cloud deployment on Google Cloud and zero-downtime blue-green releases.
+- **Leading a team:** planning work, dividing tasks across five people and keeping a large codebase consistent.
 
-```bash
-./gradlew test
-```
+## Team
 
-## Stop the dev database
+| Member | Role |
+|---|---|
+| Mikayel Ghalumyan | Team lead |
+| Teammate 1 | Developer |
+| Teammate 2 | Developer |
+| Teammate 3 | Developer |
+| Teammate 4 | Developer |
 
-```bash
-docker compose down
-```
+## Context
 
-Reset the database (also deletes the data volume):
+University project, KdG Applied Computer Science, Integration 4, 2025-2026.
 
-```bash
-docker compose down -v
-```
+Not affiliated with De Lijn. Transit data is used through De Lijn's open data API.
 
-## Project layout
+When preparing this repository I moved all API keys and credentials into environment variables, added `compose.yaml`, the permission unit tests and the deployment documentation. The original project used a separate infrastructure repository, which is merged here under `scripts/` and `docs/`.
 
-```
-src/main/java/be/kdg/integration4/spring_backend/
-├── config/           Spring config (security, websocket, seeding, startup hooks)
-├── controller/
-│   ├── api/          REST endpoints (JSON, used by JS)
-│   └── web/          Thymeleaf-backed page controllers
-├── domain/           JPA entities + enums
-├── repository/       Spring Data JPA repositories
-├── service/          Business logic
-│   ├── routing/      OSRM pedestrian routing
-│   └── transit/      GTFS + De Lijn transit suggestions
-└── mappers/          Entity ↔ DTO mappers
-```
+## Possible improvements
 
-Templates live in `src/main/resources/templates/`, static assets in
-`src/main/resources/static/`.
+- More automated tests. Most tests need a running database; Testcontainers would make them self-contained.
+- A demo login for local development, so the app can be explored without creating a Google OAuth client.
+- Push location updates over the existing WebSocket connection instead of polling.
